@@ -1,0 +1,296 @@
+.home {
+  width: min(var(--maxw), 100%);
+  margin: 0 auto;
+  /* 页脚自己带上下留白，这里不用再补一大截 */
+  padding: 0 24px 20px;
+}
+
+/* bounds the sticky hero's pin range: the hero stays pinned while the extra
+   runway height (set inline from HERO_FLY_RUNWAY_VH) scrolls past, then
+   releases into normal flow */
+.home__pin {
+  position: relative;
+}
+
+/* pinned fly-through stage: the hero stays in view while the runway inside
+   `.home__pin` scrolls, letting the three.js camera travel through the cloud */
+.home__hero {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  z-index: 1; /* pinned hero paints above the sections scrolling underneath */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home__hero {
+    position: relative;
+  }
+}
+
+.home__hero-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 640px;
+}
+
+.home__title {
+  font-family: var(--sans);
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--fg);
+  will-change: transform;
+}
+
+/* inner layer owns the idle pointer parallax (outer h1 owns the drag) */
+.home__title-parallax {
+  display: inline-block;
+  will-change: transform;
+}
+
+.home__subtitle {
+  max-width: 480px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.home__section {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 0;
+}
+
+.home__section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.home__section-head .home__section-title {
+  margin-bottom: 0;
+}
+
+.home__section-view {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.home__section-view:hover {
+  color: var(--fg);
+}
+
+.home__section-title {
+  font-family: var(--sans);
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--fg);
+  margin-bottom: 20px;
+}
+
+.home__posts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.home__empty {
+  color: var(--muted);
+}
+
+.home__about {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.home__link {
+  border: 0;
+  background: none;
+  padding: 0;
+  margin-left: 8px;
+  font-weight: 800;
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* scroll-triggered 3D flip entrance: outer div is the (untransformed) observer
+   sentinel, inner div carries the animation */
+.flip-in__inner {
+  will-change: transform;
+}
+
+/* --- 恋爱站首页专用的几块 ------------------------------------------------- */
+
+.home__eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.home__days {
+  margin-top: 6px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.home__days strong {
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--fg);
+  margin: 0 2px;
+}
+
+.home__modules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  perspective: 900px;
+}
+
+.home__module {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 190px;
+  padding: 20px 20px 24px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.home__module:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.home__module-no {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
+
+.home__module:hover .home__module-no {
+  color: var(--bg);
+  opacity: 0.7;
+}
+
+.home__module-title {
+  font-family: var(--sans);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+
+.home__module-meta {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
+.home__module-desc {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.home__module:hover .home__module-desc {
+  color: var(--bg);
+  opacity: 0.85;
+}
+
+.home__module-arrow {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  font-size: 15px;
+  transition: transform 200ms ease;
+}
+
+.home__module:hover .home__module-arrow {
+  transform: translateX(4px);
+}
+
+@media (max-width: 720px) {
+  .home__modules {
+    grid-template-columns: 1fr;
+  }
+
+  .home__module {
+    min-height: 0;
+  }
+}
+
+.home__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 38px;
+  margin: 34px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home__stat-num {
+  display: block;
+  font-family: var(--sans);
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.home__stat-label {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}

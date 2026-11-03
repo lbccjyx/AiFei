@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 只保留最新一次部署，避免并发跑两个 Pages 发布
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        # npm ci 严格按 lockfile 装；万一某个 tarball 校验值对不上，退回 install
+        run: npm ci || npm install --no-audit --no-fund
+
+      - name: Build static site
+        run: npm run build
+        env:
+          # 项目页地址是 https://<user>.github.io/AiFei/，所以资源走子路径。
+          # 换成自定义域名或 <user>.github.io 用户名仓库时，改成 /
+          VITE_BASE: /AiFei/
+
+      # GitHub Pages 没有 SPA 重写规则，把 index.html 复制成 404.html，
+      # 深链接（/AiFei/timeline 之类）刷新时才不会 404
+      - run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+        with:
+          # 仓库还没开启 Pages 时自动开启（需要仓库管理员权限的 token，
+          # 本仓库自己的 GITHUB_TOKEN 就够）；失败就去 Settings → Pages
+          # 手动把 Source 选成 "GitHub Actions" 再重跑。
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

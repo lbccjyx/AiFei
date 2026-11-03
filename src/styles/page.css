@@ -1,0 +1,42 @@
+/* 三个新页面（时间表 / 待办 / 照片）的公共骨架：顶栏留白、标题、副标题 */
+
+.page {
+  width: min(var(--maxw), 100%);
+  margin: 0 auto;
+  /* 顶部留出固定导航的高度 */
+  padding: 104px 24px 96px;
+}
+
+.page__head {
+  margin-bottom: 38px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.page__title {
+  font-family: var(--sans);
+  font-size: clamp(1.9rem, 4.4vw, 2.7rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 8px 0 12px;
+}
+
+.page__sub {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: 92px 18px 72px;
+  }
+}

@@ -1,0 +1,28 @@
+.ui-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14.5px;
+}
+
+.ui-list--unstyled {
+  padding-left: 0;
+  list-style: none;
+}
+
+.ui-list--divided {
+  padding-left: 0;
+  list-style: none;
+  gap: 0;
+}
+
+.ui-list--divided .ui-list__item {
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.ui-list--divided .ui-list__item:last-child {
+  border-bottom: 0;
+}

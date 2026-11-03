@@ -1,0 +1,57 @@
+.post-list {
+  width: min(var(--maxw), 100%);
+  margin: 0 auto;
+  padding: 72px 24px 80px;
+}
+
+.post-list__back {
+  display: block;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin-bottom: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.post-list__back:hover {
+  color: var(--fg);
+}
+
+.post-list__title {
+  font-family: var(--sans);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  /* margin-bottom: 10px; */
+}
+
+.post-list__group + .post-list__group {
+  margin-top: 44px;
+}
+
+.post-list__year {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.post-list__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.post-list__empty {
+  color: var(--muted);
+}

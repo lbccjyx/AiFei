@@ -1,0 +1,37 @@
+.ui-label {
+  font-family: var(--sans);
+  color: var(--fg);
+}
+
+.ui-label--muted {
+  color: var(--muted);
+}
+
+.ui-label--accent {
+  color: var(--bg);
+  background: var(--fg);
+}
+
+.ui-label--eyebrow {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ui-label--badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+
+.ui-label--badge.ui-label--accent {
+  border-color: var(--fg);
+}

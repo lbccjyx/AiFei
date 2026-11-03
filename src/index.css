@@ -1,0 +1,191 @@
+:root {
+  --bg: #ffffff;
+  --fg: #08060d;
+  --muted: #6b6375;
+  --border: #08060d;
+  --border-soft: #e5e4e7;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --body: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --maxw: 760px;
+  --article-w: 680px;
+
+  font: 16px/1.55 var(--body);
+  letter-spacing: 0.18px;
+  color-scheme: light;
+  color: var(--fg);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme='dark'] {
+  --bg: #0b0b0f;
+  --fg: #f2f0f5;
+  --muted: #a39cb0;
+  --border: #f2f0f5;
+  --border-soft: #2c2a33;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  /* UI chrome is not selectable; articles opt back in (see .article) */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Hide the native scrollbar — the app manages its own scroll affordance */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge/IE */
+}
+
+html::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0; /* Chrome / Safari / Edge */
+}
+
+/* Theme switches are animated by the ThemeToggle wave overlay, so the page
+   itself flips instantly — a body color transition would just add a redundant
+   full-viewport repaint on top of it. */
+
+#root {
+  min-height: 100svh;
+  width: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+figure,
+blockquote,
+pre {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+::selection {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+/* --- custom cursor (Cursor) -------------------------------------------------
+   Self-managed stealth-fighter arrow pointer: white silhouettes (arrow / hand)
+   that auto-invert whatever is rendered beneath them via
+   `mix-blend-mode: difference`. The arrow's tip is at the element's top-left,
+   so it lands exactly on the pointer. The native cursor is hidden only while
+   it's active (fine pointer, no reduced motion). */
+/* the box's (0,0) is translated to the pointer; each icon anchors itself:
+   the arrow sits so its top-left tip IS the trigger point, the hand centers */
+.cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 9999;
+  will-change: transform;
+  /* fade out when the pointer leaves the viewport; the per-icon transition
+     below keeps the arrow/hand crossfade intact */
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.cursor.is-out {
+  opacity: 0;
+}
+
+/* outlined glyphs: body in the theme ink color, outline in the theme
+   background color so they read clearly (macOS-style) in both themes */
+.cursor svg path {
+  fill: var(--bg);
+  stroke: var(--fg);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.cursor svg {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+/* crossfade between the arrow (default) and the hand (interactive hover) */
+.cursor:not(.is-hand) .icon-arrow {
+  opacity: 1;
+}
+
+.cursor.is-hand .icon-hand {
+  opacity: 1;
+}
+
+.cursor .icon-arrow {
+  /* aspect must equal the fallback viewBox (1066:1024) for exact px→unit
+     measurement; the crop then anchors the drawn tip at this box's origin,
+     which sits on the pointer */
+  width: 34px;
+  height: 32.7px;
+  /* calibration: the tilted arrow's visual tip lands ~7px right of its
+     cropped top-left corner, so nudge the whole icon left to aim at the
+     pointer; tune here if it still looks off (vertical: adjust `top`) */
+  left: -7px;
+  top: 0;
+}
+
+.cursor .icon-hand {
+  /* 1:1 aspect matches its fallback viewBox; same calibration offset as the
+     arrow so both share the exact hotspot (no shift when switching) */
+  width: 30px;
+  height: 30px;
+  left: -7px;
+  top: 0;
+}
+
+html.has-custom-cursor,
+html.has-custom-cursor * {
+  cursor: none !important;
+}
+
+.app-main {
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+}
+
+.view {
+  min-height: 100svh;
+}

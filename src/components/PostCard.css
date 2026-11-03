@@ -1,0 +1,77 @@
+.post-card-wrap {
+  perspective: 900px;
+}
+
+.post-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 24px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  text-align: left;
+  transform-style: preserve-3d;
+  /* only transform animates (hover lift / tilt): animating background-color
+     and color on every card at once makes theme switches janky on long
+     archives — the theme-toggle wave overlay provides the visual transition */
+  transition: transform 180ms ease;
+}
+
+.post-card:hover {
+  background: var(--fg);
+  color: var(--bg);
+  transform: translateY(-2px);
+}
+
+.post-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.post-card__date {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.post-card:hover .post-card__date {
+  color: var(--bg);
+  opacity: 0.72;
+}
+
+.post-card__tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.post-card__title {
+  font-family: var(--sans);
+  font-weight: 900;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+}
+
+.post-card__excerpt {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.post-card:hover .post-card__excerpt {
+  color: var(--bg);
+  opacity: 0.8;
+}
+
+.post-card__cover {
+  margin-top: 4px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  object-fit: cover;
+}

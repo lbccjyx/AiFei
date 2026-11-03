@@ -1,0 +1,32 @@
+.three-hero {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* fade in together with the hero text instead of popping in */
+  animation: three-hero-in 1100ms ease-out both;
+}
+
+@keyframes three-hero-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .three-hero {
+    animation: none;
+  }
+}
+
+.three-hero canvas {
+  display: block;
+}
+
+.three-hero--fallback {
+  background:
+    radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--fg) 10%, transparent), transparent 60%),
+    radial-gradient(circle at 70% 60%, color-mix(in srgb, var(--fg) 8%, transparent), transparent 55%);
+}

@@ -1,0 +1,12 @@
+.ui-card {
+  border-radius: var(--radius);
+  background: transparent;
+}
+
+.ui-card--outlined {
+  border: 1.5px solid var(--border-soft);
+}
+
+.ui-card--padded {
+  padding: 20px;
+}

@@ -1,0 +1,202 @@
+.tl {
+  position: relative;
+}
+
+/* 贯穿整条时间表的竖线 */
+.tl::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  bottom: 34px;
+  width: 1px;
+  background: var(--border-soft);
+}
+
+.tl__group + .tl__group {
+  margin-top: 6px;
+}
+
+.tl__year {
+  position: relative;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  padding-left: 28px;
+  margin-bottom: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl__year::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 9px;
+  height: 1px;
+  background: var(--border-soft);
+}
+
+.tl__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tl__item {
+  position: relative;
+  padding-left: 32px;
+  padding-bottom: 38px;
+}
+
+.tl__item:last-child {
+  padding-bottom: 22px;
+}
+
+.tl__dot {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--fg);
+  border-radius: 50%;
+  background: var(--bg);
+  transition: transform 200ms ease;
+}
+
+.tl__item--hero .tl__dot {
+  background: var(--fg);
+  transform: scale(1.18);
+}
+
+.tl__item:hover .tl__dot {
+  transform: scale(1.25);
+}
+
+.tl__body {
+  padding: 0;
+}
+
+.tl__item--hero .tl__body {
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px 22px;
+}
+
+.tl__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.tl__date {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tl__tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.tl__title {
+  font-family: var(--sans);
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  color: var(--fg);
+}
+
+.tl__item--hero .tl__title {
+  font-size: 1.3rem;
+}
+
+.tl__text {
+  margin-top: 8px;
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+.tl__photo {
+  display: block;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.tl__now {
+  position: relative;
+  padding-left: 32px;
+  padding-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tl__pulse {
+  position: absolute;
+  left: 1px;
+  top: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--fg);
+  animation: tl-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes tl-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--fg) 35%, transparent);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl__pulse {
+    animation: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .tl__item {
+    padding-left: 24px;
+    padding-bottom: 32px;
+  }
+
+  .tl__item--hero .tl__body {
+    padding: 16px 16px 18px;
+  }
+
+  .tl__now {
+    padding-left: 24px;
+  }
+}

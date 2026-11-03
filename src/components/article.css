@@ -1,0 +1,165 @@
+/* Article typography — shared by markdown-rendered and raw HTML content. */
+
+.article {
+  max-width: var(--article-w);
+  margin: 0 auto;
+  padding: 0 24px;
+  font-size: 17px;
+  line-height: 1.75;
+  /* article body text is selectable even though the rest of the UI is not */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.article > * + * {
+  margin-top: 1.15em;
+}
+
+.article h1,
+.article h2,
+.article h3,
+.article h4,
+.article h5,
+.article h6 {
+  font-family: var(--sans);
+  font-weight: 900;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  scroll-margin-top: 24px;
+}
+
+.article h1 {
+  font-size: 2rem;
+  margin-top: 0.6em;
+}
+
+.article h2 {
+  font-size: 1.5rem;
+  padding-bottom: 0.3em;
+  border-bottom: 2px solid var(--border);
+}
+
+.article h3 {
+  font-size: 1.22rem;
+}
+
+.article h4,
+.article h5,
+.article h6 {
+  font-size: 1.05rem;
+}
+
+.article p {
+  color: var(--fg);
+}
+
+.article a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+
+.article a:hover {
+  background: var(--fg);
+  color: var(--bg);
+  text-decoration: none;
+}
+
+.article strong {
+  font-weight: 800;
+}
+
+.article em {
+  font-style: italic;
+}
+
+.article del {
+  opacity: 0.6;
+}
+
+.article code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--border-soft);
+  padding: 0.12em 0.42em;
+  border-radius: 6px;
+}
+
+.article pre {
+  overflow-x: auto;
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  line-height: 1.6;
+}
+
+.article pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: 13.5px;
+}
+
+.article blockquote {
+  border-left: 4px solid var(--fg);
+  padding: 4px 0 4px 20px;
+  color: var(--muted);
+}
+
+.article blockquote > * + * {
+  margin-top: 0.7em;
+}
+
+.article ul,
+.article ol {
+  padding-left: 1.5em;
+}
+
+.article li + li {
+  margin-top: 0.4em;
+}
+
+.article ul li::marker {
+  color: var(--fg);
+}
+
+.article hr {
+  border: 0;
+  border-top: 2px solid var(--border);
+  margin: 2em auto;
+  width: 40%;
+}
+
+.article .table-wrap {
+  overflow-x: auto;
+}
+
+.article table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.article th,
+.article td {
+  border: 1.5px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.article th {
+  background: var(--fg);
+  color: var(--bg);
+  font-weight: 800;
+}
+
+.article tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--bg) 96%, var(--fg));
+}
+
+/* Raw HTML content blocks keep the same typography */
+.article .article-html > * + * {
+  margin-top: 1.15em;
+}

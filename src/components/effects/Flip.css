@@ -1,0 +1,42 @@
+/* 3D flip card: the wrapper provides perspective, the inner element carries
+   preserve-3d and the rotation, and the two faces occupy the same box with
+   the back face pre-rotated 180deg on the matching axis. */
+.fx-flip {
+  display: inline-block;
+}
+
+.fx-flip__inner {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.fx-flip__face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.fx-flip__back {
+  position: absolute;
+  inset: 0;
+}
+
+.fx-flip--y .fx-flip__back {
+  transform: rotateY(180deg);
+}
+
+.fx-flip--x .fx-flip__back {
+  transform: rotateX(180deg);
+}
+
+/* reduced motion: no 3D, faces stack and cross-fade instead */
+.fx-flip--reduced .fx-flip__inner {
+  transform-style: flat;
+}
+
+.fx-flip--reduced .fx-flip__back {
+  position: absolute;
+  inset: 0;
+  transform: none;
+  opacity: 0;
+}

@@ -1,0 +1,30 @@
+/* Shared base for effect wrapper elements. They attach motion to whatever
+   page element they wrap, so the wrapper itself must stay layout-neutral
+   (inline-flex, shrink to content) and ready to be transformed. */
+.fx {
+  display: inline-flex;
+  max-width: 100%;
+  will-change: transform;
+}
+
+/* draggable: grab affordance + own the pointer so page scroll doesn't fight
+   the drag on touch screens */
+.fx-drag {
+  cursor: grab;
+  touch-action: none;
+}
+
+.fx-drag:active {
+  cursor: grabbing;
+}
+
+/* the rotating child of <Tilt> fills its perspective wrapper */
+.fx-tilt {
+  display: inline-flex;
+}
+
+.fx-tilt__inner {
+  display: inline-flex;
+  max-width: 100%;
+  will-change: transform;
+}

@@ -1,0 +1,88 @@
+/* 瀑布流：按列排，图片保持自己的比例，高度不齐也不会出现空洞 */
+.gallery {
+  columns: 3 220px;
+  column-gap: 14px;
+}
+
+.ph {
+  margin: 0 0 14px;
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+.ph__btn {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--border-soft);
+  cursor: pointer;
+  /* 图片在按钮里，用独立的层叠上下文让说明文字压在上面 */
+  isolation: isolate;
+}
+
+.ph__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition:
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 320ms ease;
+}
+
+.ph__btn:hover .ph__img,
+.ph__btn:focus-visible .ph__img {
+  transform: scale(1.035);
+}
+
+.ph__cap {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 34px 12px 11px;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  color: #fff;
+  background: linear-gradient(to top, rgba(4, 4, 8, 0.78), rgba(4, 4, 8, 0));
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.ph__btn:hover .ph__cap,
+.ph__btn:focus-visible .ph__cap {
+  opacity: 1;
+  transform: none;
+}
+
+.gallery__empty {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+@media (max-width: 860px) {
+  .gallery {
+    columns: 2 180px;
+  }
+}
+
+@media (hover: none) {
+  /* 没有 hover 的设备（手机）：说明文字常驻，不然永远看不到 */
+  .ph__cap {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph__img,
+  .ph__cap {
+    transition: none;
+  }
+}

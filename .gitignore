@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Local env overrides (the default .env and .env.example ARE committed)
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Editor atomic-write / backup leftovers (UUID-name with a numeric suffix)
+*.[0-9]*
+
+# 本地临时文件
+*.tmp
+_notes/
+
+# Deploy scratch directory (rewritten by scripts/deploy.mjs)
+.deploy
