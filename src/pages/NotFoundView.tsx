@@ -15,9 +15,9 @@ export default function NotFoundView({ pageId }: { pageId: string }) {
     <div className="notfound">
       <h1 className="notfound__code">404</h1>
       <p className="notfound__msg">
-        Unknown page: <code>{pageId}</code>
+        没有这个页面：<code>{pageId}</code>
       </p>
-      <Button onClick={goHome}>← Back home</Button>
+      <Button onClick={goHome}>← 回首页</Button>
     </div>
   );
 }

@@ -157,7 +157,7 @@ export default function PostList({
 
   const backButton: ReactNode = showBack ? (
     <button type="button" className="post-list__back" onClick={goBack}>
-      ← Back
+      ← 返回
     </button>
   ) : null;
 
@@ -169,7 +169,7 @@ export default function PostList({
           <h1 className="post-list__title">{title}</h1>
         </Reveal>
         {groups.length === 0 ? (
-          <p className="post-list__empty">No posts yet.</p>
+          <p className="post-list__empty">还没有内容。</p>
         ) : (
           groups.map((group) => (
             <section

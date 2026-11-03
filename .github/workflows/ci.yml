@@ -20,13 +20,13 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci || npm install --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
 
+      # 用部署时的子路径构建一遍，确保线上路径没有问题
       - name: Build
         run: npm run build
-        # If this template itself is served from a project page
-        # (https://user.github.io/blog-template/), set VITE_BASE=/blog-template/
-        # as a repository variable or in the workflow env.
+        env:
+          VITE_BASE: /AiFei/
