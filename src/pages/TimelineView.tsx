@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { timeline } from '../data/timeline';
-import { daysTogether } from '../lib/couple';
+import { daysSince } from '../lib/couple';
 import { formatDotDate } from '../lib/format';
 import { findPhoto } from '../lib/photos';
 import { mergeTimeline, usePending, type TimelineEntry } from '../lib/pending';
@@ -39,7 +39,7 @@ export default function TimelineView() {
         <p className="page__sub">
           {entries.length} 个瞬间
           {firstDate ? `，从 ${formatDotDate(firstDate)} 开始` : ''}
-          ，到今天已经 {daysTogether()} 天。
+          ，到今天已经 {daysSince(firstDate)} 天。
         </p>
       </header>
 

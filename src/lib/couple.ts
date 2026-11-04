@@ -24,6 +24,15 @@ export function daysTogether(now: Date = new Date()): number {
   return diff < 0 ? 0 : diff + 1;
 }
 
+/** 从任意一天（如时间表的第一条）到今天的天数，当天算第 1 天 */
+export function daysSince(iso: string, now: Date = new Date()): number {
+  const start = parseDay(iso);
+  if (!start) return 0;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((today.getTime() - start.getTime()) / DAY_MS);
+  return diff < 0 ? 0 : diff + 1;
+}
+
 /** 从纪念日到今天的整年数，用于「第 N 年」 */
 export function yearsTogether(now: Date = new Date()): number {
   const start = parseDay(couple.startDate);
