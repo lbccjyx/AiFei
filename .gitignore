@@ -30,6 +30,10 @@ dist-ssr
 # Editor atomic-write / backup leftovers (UUID-name with a numeric suffix)
 *.[0-9]*
 
+# 照片文件名里常带日期点号（如 01-2026.09.01.jpg），会被上面那条规则误伤，
+# 这里显式放行整个照片目录
+!content/photos/**
+
 # 本地临时文件
 *.tmp
 _notes/
