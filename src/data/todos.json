@@ -1,17 +1,21 @@
 [
-  { "id": "t1", "text": "一起去看一次海边的日出", "category": "旅行" },
-  { "id": "t2", "text": "在下雪的城市里走一走", "category": "旅行" },
-  { "id": "t3", "text": "自驾一次没有目的地的公路旅行", "category": "旅行" },
-  { "id": "t4", "text": "拍一组白衬衫的照片", "category": "旅行" },
+  { "id": "w1", "text": "一起坐摩天轮", "category": "旅行" },
+  { "id": "w2", "text": "一起减肥", "category": "日常" },
+  { "id": "w3", "text": "一次拍写真", "category": "日常" },
+  { "id": "w4", "text": "一起拍大头贴", "category": "日常" },
+  { "id": "w5", "text": "一起骑单车", "category": "旅行" },
 
-  { "id": "t5", "text": "一起做一顿年夜饭", "category": "美食" },
-  { "id": "t6", "text": "打卡凌晨的路边摊", "category": "美食" },
-  { "id": "t7", "text": "学会做对方最爱吃的那道菜", "category": "美食" },
+  { "id": "w6", "text": "送戒指给菲宝", "category": "未来" },
+  { "id": "w7", "text": "一起放风筝", "category": "旅行" },
 
-  { "id": "t8", "text": "把合照贴满一面墙", "category": "日常" },
-  { "id": "t9", "text": "每周留一次不带手机的散步", "category": "日常" },
-  { "id": "t10", "text": "一起养一只猫", "category": "日常" },
+  { "id": "w8", "text": "吃黑松露红米鸡", "category": "美食" },
+  { "id": "w9", "text": "吃菲宝炖的羊肉汤", "category": "美食" },
 
-  { "id": "t11", "text": "一起攒一笔旅行基金", "category": "未来" },
-  { "id": "t12", "text": "每年写一封手写的信，攒着不拆", "category": "未来" }
+  { "id": "w10", "text": "去菲宝的南宁", "category": "旅行" },
+  { "id": "w11", "text": "开车带菲宝兜风", "category": "旅行" },
+
+  { "id": "w12", "text": "菲宝考驾照", "category": "未来" },
+  { "id": "w13", "text": "一人一辆豪车", "category": "未来" },
+
+  { "id": "w14", "text": "周末去唱歌", "category": "日常" }
 ]

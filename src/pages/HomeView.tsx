@@ -111,12 +111,12 @@ export default function HomeView() {
           <ThreeHero />
           <div className="home__hero-inner" ref={heroInnerRef}>
             <Reveal delay={40}>
-              <p className="home__eyebrow">{couple.names}</p>
+              <p className="home__eyebrow">{siteConfig.name}</p>
             </Reveal>
             <Reveal delay={80}>
               <Fx as="h1" drag bounce className="home__title">
                 <span className="home__title-parallax" ref={titleParallaxRef}>
-                  {siteConfig.name}
+                  {couple.names}
                 </span>
               </Fx>
             </Reveal>

@@ -44,10 +44,11 @@
 
 .home__title {
   font-family: var(--sans);
-  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  /* 中文名字比英文品牌名占位更宽，字号和字距都按汉字调过 */
+  font-size: clamp(1.9rem, 5.2vw, 3.1rem);
   font-weight: 900;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  letter-spacing: 0.04em;
+  line-height: 1.18;
   color: var(--fg);
   will-change: transform;
 }
@@ -150,11 +151,12 @@
 /* --- 恋爱站首页专用的几块 ------------------------------------------------- */
 
 .home__eyebrow {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.24em;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--fg);
+  opacity: 0.5;
 }
 
 .home__days {
