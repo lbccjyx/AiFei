@@ -18,6 +18,7 @@ const STATIC_PATHS: Record<string, string> = {
   timeline: '/timeline',
   todo: '/todo',
   gallery: '/gallery',
+  admin: '/admin',
   diary: '/diary',
   about: '/about',
 };

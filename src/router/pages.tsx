@@ -6,6 +6,7 @@ import NotFoundView from '../pages/NotFoundView';
 import TimelineView from '../pages/TimelineView';
 import TodoView from '../pages/TodoView';
 import GalleryView from '../pages/GalleryView';
+import AdminView from '../pages/AdminView';
 import { getArchivePosts, getPost, getPosts } from '../lib/content';
 
 /**
@@ -21,6 +22,7 @@ export function renderPage(pageId: string): ReactNode {
   if (pageId === 'timeline') return <TimelineView />;
   if (pageId === 'todo') return <TodoView />;
   if (pageId === 'gallery') return <GalleryView />;
+  if (pageId === 'admin') return <AdminView />;
   if (pageId === 'diary') {
     // posts tagged `hidden` stay out of the diary but remain reachable
     // through their tag pages
@@ -54,6 +56,7 @@ export function getPageTitle(pageId: string): string {
   if (pageId === 'timeline') return '时间表';
   if (pageId === 'todo') return '待办';
   if (pageId === 'gallery') return '照片';
+  if (pageId === 'admin') return '编辑';
   if (pageId === 'diary') return '日记';
   if (pageId === 'about') return '关于';
   if (pageId.startsWith('post:')) {

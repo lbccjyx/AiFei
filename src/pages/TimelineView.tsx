@@ -1,29 +1,35 @@
 import { useMemo } from 'react';
-import { timeline, type TimelineItem } from '../data/timeline';
+import { timeline } from '../data/timeline';
 import { daysTogether } from '../lib/couple';
 import { formatDotDate } from '../lib/format';
 import { findPhoto } from '../lib/photos';
+import { mergeTimeline, usePending, type TimelineEntry } from '../lib/pending';
+import { isPlainClick, usePageReveal } from '../components/page-reveal-context';
 import Reveal from '../components/effects/Reveal';
 import './TimelineView.css';
 
-/** 从早到晚排 —— 时间表要能顺着读下来，不按时间倒序 */
-const items: TimelineItem[] = [...timeline].sort((a, b) =>
-  a.date.localeCompare(b.date),
-);
-
-const firstDate = items[0]?.date ?? '';
-
 export default function TimelineView() {
+  const pending = usePending();
+  const startReveal = usePageReveal();
+
+  // 构建进站点的条目 + 刚提交还没构建的（后者带「待构建」标记）
+  const entries = useMemo(
+    () => mergeTimeline(timeline, pending.timeline),
+    [pending.timeline],
+  );
+
   const groups = useMemo(() => {
-    const byYear = new Map<string, TimelineItem[]>();
-    for (const item of items) {
-      const year = item.date.slice(0, 4) || '—';
+    const byYear = new Map<string, TimelineEntry[]>();
+    for (const entry of entries) {
+      const year = entry.item.date.slice(0, 4) || '—';
       const list = byYear.get(year) ?? [];
-      list.push(item);
+      list.push(entry);
       byYear.set(year, list);
     }
     return [...byYear.entries()];
-  }, []);
+  }, [entries]);
+
+  const firstDate = entries[0]?.item.date ?? '';
 
   return (
     <div className="page">
@@ -31,7 +37,7 @@ export default function TimelineView() {
         <p className="eyebrow">Timeline</p>
         <h1 className="page__title">恋爱时间表</h1>
         <p className="page__sub">
-          {items.length} 个瞬间
+          {entries.length} 个瞬间
           {firstDate ? `，从 ${formatDotDate(firstDate)} 开始` : ''}
           ，到今天已经 {daysTogether()} 天。
         </p>
@@ -42,7 +48,7 @@ export default function TimelineView() {
           <section className="tl__group" key={year}>
             <h2 className="tl__year">{year}</h2>
             <ol className="tl__items">
-              {list.map((item, index) => {
+              {list.map(({ item, pending: isPending }, index) => {
                 const photo = findPhoto(item.photo);
                 return (
                   <li
@@ -57,6 +63,7 @@ export default function TimelineView() {
                             {formatDotDate(item.date)}
                           </time>
                           {item.tag ? <span className="tl__tag">{item.tag}</span> : null}
+                          {isPending ? <span className="tl__pending">待构建</span> : null}
                         </div>
                         <h3 className="tl__title">{item.title}</h3>
                         {item.text ? <p className="tl__text">{item.text}</p> : null}
@@ -82,6 +89,17 @@ export default function TimelineView() {
           至今 · 未完待续
         </div>
       </div>
+
+      <button
+        type="button"
+        className="tl__add"
+        onClick={(event) => {
+          if (!isPlainClick(event)) return;
+          startReveal('admin', event.clientX, event.clientY);
+        }}
+      >
+        ＋ 添加一个时间点
+      </button>
     </div>
   );
 }

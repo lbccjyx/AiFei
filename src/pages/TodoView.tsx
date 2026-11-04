@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { type TodoCategory } from '../data/todos';
 import { useTodos, type TodoFilter } from '../lib/todos';
+import { mergeTodos, usePending } from '../lib/pending';
+import { isPlainClick, usePageReveal } from '../components/page-reveal-context';
 import Reveal from '../components/effects/Reveal';
 import './TodoView.css';
 
@@ -17,12 +19,26 @@ function CheckMark() {
 }
 
 export default function TodoView() {
-  const { todos, done, toggle, reset, doneCount, total } = useTodos();
+  const { todos: builtTodos, done, toggle, reset, doneCount } = useTodos();
+  const pending = usePending();
+  const startReveal = usePageReveal();
   const [filter, setFilter] = useState<TodoFilter>('全部');
 
+  // 构建进站点的 + 刚提交还没构建的
+  const entries = useMemo(
+    () => mergeTodos(builtTodos, pending.todos),
+    [builtTodos, pending.todos],
+  );
+  const all = useMemo(() => entries.map((entry) => entry.todo), [entries]);
+  const pendingTexts = useMemo(
+    () => new Set(entries.filter((entry) => entry.pending).map((entry) => entry.todo.text)),
+    [entries],
+  );
+
+  const total = all.length;
   const visible = useMemo(
-    () => (filter === '全部' ? todos : todos.filter((todo) => todo.category === filter)),
-    [todos, filter],
+    () => (filter === '全部' ? all : all.filter((todo) => todo.category === filter)),
+    [all, filter],
   );
 
   const doneOfFilter = useMemo(
@@ -62,9 +78,7 @@ export default function TodoView() {
       <div className="todo__filters" role="group" aria-label="按分类筛选">
         {FILTERS.map((name) => {
           const countOf =
-            name === '全部'
-              ? total
-              : todos.filter((todo) => todo.category === name).length;
+            name === '全部' ? total : all.filter((todo) => todo.category === name).length;
           return (
             <button
               key={name}
@@ -101,6 +115,9 @@ export default function TodoView() {
                       {isDone ? <CheckMark /> : null}
                     </span>
                     <span className="todo__text">{todo.text}</span>
+                    {pendingTexts.has(todo.text) ? (
+                      <span className="todo__pending">待构建</span>
+                    ) : null}
                     <span className="todo__cat">{todo.category}</span>
                   </button>
                 </Reveal>
@@ -114,11 +131,23 @@ export default function TodoView() {
         <span className="todo__foot-note">
           {filter === '全部' ? '全部清单' : `${filter}清单`}里已完成 {doneOfFilter} 件
         </span>
-        {doneCount > 0 ? (
-          <button type="button" className="todo__reset" onClick={reset}>
-            重置勾选
+        <div className="todo__foot-actions">
+          <button
+            type="button"
+            className="todo__add"
+            onClick={(event) => {
+              if (!isPlainClick(event)) return;
+              startReveal('admin', event.clientX, event.clientY);
+            }}
+          >
+            ＋ 添加一件
           </button>
-        ) : null}
+          {doneCount > 0 ? (
+            <button type="button" className="todo__reset" onClick={reset}>
+              重置勾选
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

@@ -12,11 +12,39 @@
 | 页面 | 路径 | 内容从哪来 |
 | --- | --- | --- |
 | 首页 | `/` | 粒子首屏 + 三个入口 + 最近日记 + 关于 |
-| 时间表 | `/timeline` | `src/data/timeline.ts` |
-| 待办 | `/todo` | `src/data/todos.ts`（勾选存在浏览器本地） |
+| 时间表 | `/timeline` | `src/data/timeline.json` |
+| 待办 | `/todo` | `src/data/todos.json`（勾选存在浏览器本地） |
 | 照片 | `/gallery` | `content/photos/` 里的图片，自动收集 |
 | 日记 | `/diary` | `content/posts/*.md` |
 | 关于 | `/about` | `content/about.md` |
+| 编辑 | `/admin` | 不用改文件：网页上直接传照片、加时间点、加待办 |
+
+## 在网页上编辑（推荐）
+
+页脚右下角的「编辑」，或者直接打开 `/admin`，可以：
+
+- 一次选/拖多张照片上传（自动压到 1800px 的 JPG，按 01、02… 排好序）
+- 新增时间表条目（日期、标题、正文、标签、配图、是否重要节点）
+- 新增待办
+
+提交后内容会**直接提交到这个 GitHub 仓库**，Actions 自动重新构建（约 1 分钟）后正式上线。
+提交成功但还没构建完的这一分钟里，照片页/时间表上会先显示出来并标着「待构建」，构建完成后标记自动消失。
+
+**它需要一个 GitHub token**（只在你的浏览器里存着，不经过任何第三方）：
+
+1. 打开 https://github.com/settings/personal-access-tokens/new
+2. Token name 随便写（比如 aifei-admin），Expiration 建议 90 天以上
+3. Repository access → **Only select repositories** → 勾 **AiFei**
+4. Permissions → Repository permissions → **Contents** 选 **Read and write**（别的一律不给）
+5. Generate token，复制 `github_pat_…`，粘到 `/admin` 的输入框里，点「保存并验证」
+
+几点说明：
+
+- token 只存在这台设备的 `localStorage`，换设备/清缓存要再填一次；泄露了就去同一个页面 Revoke
+- 想让她也能编辑，就在 github 上给她授权这个仓库，或者给她也生成一个同样权限的 token
+- 删除照片/条目目前还得手动改文件（`content/photos/`、`src/data/*.json`），网页上只做了「加」
+
+## 也可以直接改文件
 
 ## 日常维护：只需要改这几个地方
 
@@ -38,7 +66,7 @@ export const couple = {
 
 ### 2. 时间表
 
-`src/data/timeline.ts`，一个数组，照着注释复制一段就行：
+`src/data/timeline.json`，一个数组，照着注释复制一段就行：
 
 ```ts
 {
@@ -55,7 +83,7 @@ export const couple = {
 
 ### 3. 要办的事情
 
-`src/data/todos.ts`：
+`src/data/todos.json`：
 
 ```ts
 { id: 't13', text: '一起去看一次演唱会', category: '旅行' }
@@ -77,7 +105,7 @@ content/photos/
 └── 07-新照片.jpg        ← 加进来自动出现，不用改代码
 ```
 
-说明文字在 `src/data/photos.ts` 里配（键 = 文件名去掉扩展名，不用改后缀）。
+说明文字在 `src/data/photo-captions.json` 里配（键 = 文件名去掉扩展名，不用改后缀）。
 没配的照片会自动用文件名当说明（去掉开头的数字）。文件名里带中文没问题。
 
 > 仓库里现在这 6 张是程序生成的占位图，直接删掉换成你们的照片即可。
