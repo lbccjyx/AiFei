@@ -7,6 +7,7 @@ import ThemeToggle from './components/ThemeToggle';
 import Cursor from './components/Cursor';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import MusicPlayer from './components/MusicPlayer';
 import { prunePending } from './lib/pending';
 import { timeline } from './data/timeline';
 import { todos } from './data/todos';
@@ -40,6 +41,7 @@ function Shell() {
       <NavBar />
       <ViewOutlet />
       <Footer />
+      <MusicPlayer />
       <div className="theme-fab">
         <ThemeToggle />
       </div>

@@ -1,0 +1,138 @@
+.music {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.music__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--fg);
+  padding: 9px 16px 9px 13px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.music__btn:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.music__btn.is-playing {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.music__label {
+  line-height: 1;
+}
+
+/* 三根跳动的竖条：播放时是「正在放」的提示，静止时就是个小图标 */
+.music__bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.music__bars i {
+  display: block;
+  width: 2px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+.music__btn.is-playing .music__bars i,
+.music__bars.is-active i {
+  animation: music-bar 900ms ease-in-out infinite;
+}
+
+.music__bars i:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.music__bars i:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes music-bar {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music__bars i {
+    animation: none;
+    height: 8px;
+  }
+}
+
+.music__panel {
+  width: 300px;
+  max-width: calc(100vw - 36px);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.music__panel-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--fg);
+}
+
+.music__frame {
+  width: 100%;
+  height: 66px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.music__panel-hint {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+@media (max-width: 560px) {
+  .music {
+    left: 12px;
+    bottom: 12px;
+  }
+
+  .music__label {
+    display: none;
+  }
+
+  .music__btn {
+    padding: 11px;
+  }
+}
