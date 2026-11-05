@@ -1,21 +1,77 @@
 [
-  { "id": "w1", "text": "一起坐摩天轮", "category": "旅行" },
-  { "id": "w2", "text": "一起减肥", "category": "日常" },
-  { "id": "w3", "text": "一次拍写真", "category": "日常" },
-  { "id": "w4", "text": "一起拍大头贴", "category": "日常" },
-  { "id": "w5", "text": "一起骑单车", "category": "旅行" },
-
-  { "id": "w6", "text": "送戒指给菲宝", "category": "未来" },
-  { "id": "w7", "text": "一起放风筝", "category": "旅行" },
-
-  { "id": "w8", "text": "吃黑松露红米鸡", "category": "美食" },
-  { "id": "w9", "text": "吃菲宝炖的羊肉汤", "category": "美食" },
-
-  { "id": "w10", "text": "去菲宝的南宁", "category": "旅行" },
-  { "id": "w11", "text": "开车带菲宝兜风", "category": "旅行" },
-
-  { "id": "w12", "text": "菲宝考驾照", "category": "未来" },
-  { "id": "w13", "text": "一人一辆豪车", "category": "未来" },
-
-  { "id": "w14", "text": "周末去唱歌", "category": "日常" }
+  {
+    "id": "w1",
+    "text": "一起坐摩天轮",
+    "category": "旅行"
+  },
+  {
+    "id": "w2",
+    "text": "一起减肥",
+    "category": "日常"
+  },
+  {
+    "id": "w3",
+    "text": "一次拍写真",
+    "category": "日常"
+  },
+  {
+    "id": "w4",
+    "text": "一起拍大头贴",
+    "category": "日常"
+  },
+  {
+    "id": "w5",
+    "text": "一起骑单车",
+    "category": "旅行"
+  },
+  {
+    "id": "w6",
+    "text": "送戒指给菲宝",
+    "category": "未来"
+  },
+  {
+    "id": "w7",
+    "text": "一起放风筝",
+    "category": "旅行"
+  },
+  {
+    "id": "w8",
+    "text": "吃黑松露红米鸡",
+    "category": "美食"
+  },
+  {
+    "id": "w9",
+    "text": "吃菲宝炖的羊肉汤",
+    "category": "美食"
+  },
+  {
+    "id": "w10",
+    "text": "去菲宝的南宁",
+    "category": "旅行"
+  },
+  {
+    "id": "w11",
+    "text": "开车带菲宝兜风",
+    "category": "旅行"
+  },
+  {
+    "id": "w12",
+    "text": "菲宝考驾照",
+    "category": "未来"
+  },
+  {
+    "id": "w13",
+    "text": "一人一辆豪车",
+    "category": "未来"
+  },
+  {
+    "id": "w14",
+    "text": "周末去唱歌",
+    "category": "日常"
+  },
+  {
+    "id": "tmw32vtf2",
+    "text": "跟菲宝一块去工地",
+    "category": "旅行"
+  }
 ]
