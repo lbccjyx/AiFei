@@ -118,6 +118,13 @@ export function prunePending(built: {
   commit({ timeline, photos, todos });
 }
 
+/** 在「编辑」页里删掉/改掉某条时，把它对应的待构建标记也一起清掉 */
+export function dropPendingTimeline(match: (item: TimelineItem) => boolean): void {
+  const timeline = state.timeline.filter((entry) => !match(entry.item));
+  if (timeline.length === state.timeline.length) return;
+  commit({ ...state, timeline });
+}
+
 export type TimelineEntry = { item: TimelineItem; pending: boolean };
 export type PhotoEntry = Photo & { pending: boolean };
 export type TodoEntry = { todo: Todo; pending: boolean };

@@ -144,18 +144,18 @@ export type PutOptions = {
   sha?: string;
 };
 
-/** 新建或覆盖一个文件（一次提交） */
+/** 新建或覆盖一个文件（一次提交），返回新文件的 sha（下次覆盖要用） */
 export async function putFile({
   path,
   message,
   text,
   bytes,
   sha,
-}: PutOptions): Promise<void> {
+}: PutOptions): Promise<string> {
   const base64 =
     bytes !== undefined ? bytesToBase64(bytes) : bytesToBase64(new TextEncoder().encode(text ?? ''));
 
-  await request(`/repos/${REPO.owner}/${REPO.repo}/contents/${encodePath(path)}`, {
+  const res = await request(`/repos/${REPO.owner}/${REPO.repo}/contents/${encodePath(path)}`, {
     method: 'PUT',
     body: JSON.stringify({
       message,
@@ -164,6 +164,8 @@ export async function putFile({
       ...(sha ? { sha } : {}),
     }),
   });
+  const data = (await res.json()) as { content?: { sha?: string } };
+  return data.content?.sha ?? '';
 }
 
 /** 读 JSON 文件并解析；不存在时返回 null */
@@ -173,14 +175,14 @@ export async function readJsonFile<T>(path: string): Promise<{ data: T; sha: str
   return { data: JSON.parse(file.text) as T, sha: file.sha };
 }
 
-/** 写 JSON 文件（带缩进，方便在 GitHub 上看 diff） */
+/** 写 JSON 文件（带缩进，方便在 GitHub 上看 diff），返回新 sha */
 export async function writeJsonFile(
   path: string,
   value: unknown,
   message: string,
   sha?: string,
-): Promise<void> {
-  await putFile({ path, message, text: `${JSON.stringify(value, null, 2)}\n`, sha });
+): Promise<string> {
+  return putFile({ path, message, text: `${JSON.stringify(value, null, 2)}\n`, sha });
 }
 
 /** 已提交但还没被构建进站点的图片，可以先用 raw 地址显示 */

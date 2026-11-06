@@ -365,6 +365,97 @@ select.admin-input {
   padding: 8px 2px 0;
 }
 
+/* --- 时间表条目列表（编辑 / 删除） ------------------------------------------ */
+
+.admin-list__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-list {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+.admin-list__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+
+.admin-list__row.is-editing {
+  background: var(--border-soft);
+  border-radius: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.admin-list__date {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-list__title {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-list__row.is-editing .admin-list__title {
+  white-space: normal;
+}
+
+.admin-list__flag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.admin-list__actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.admin-btn--sm {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  border-radius: 999px;
+}
+
+.admin-btn--danger {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+.admin-btn--danger:hover:not(:disabled) {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #fff;
+}
+
 @media (max-width: 560px) {
   .admin-card {
     padding: 18px 16px 20px;
@@ -373,5 +464,14 @@ select.admin-input {
   .admin-queue__img {
     width: 52px;
     height: 52px;
+  }
+
+  .admin-list__title {
+    flex-basis: 100%;
+    white-space: normal;
+  }
+
+  .admin-list__actions {
+    margin-left: 0;
   }
 }

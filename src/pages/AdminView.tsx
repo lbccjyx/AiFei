@@ -18,6 +18,7 @@ import {
   addPendingPhoto,
   addPendingTimeline,
   addPendingTodo,
+  dropPendingTimeline,
   usePending,
 } from '../lib/pending';
 import Reveal from '../components/effects/Reveal';
@@ -220,36 +221,172 @@ export default function AdminView() {
     photo: '',
   });
   const [tlMsg, setTlMsg] = useState('');
+  const [remote, setRemote] = useState<{ list: TimelineItem[]; sha: string } | null>(null);
+  const [remoteState, setRemoteState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  /** 正在编辑的条目在 remote.list 里的下标；null = 新增模式 */
+  const [editing, setEditing] = useState<number | null>(null);
+  /** 正在二次确认删除的那条 */
+  const [confirming, setConfirming] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const submitTimeline = async (event: FormEvent) => {
+  // 连上之后读一次仓库里的时间表 —— 改 / 删都需要当前 sha，不能只靠打进包里的副本
+  useEffect(() => {
+    if (!connected) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const file = await readJsonFile<TimelineItem[]>(TIMELINE_FILE);
+        if (!alive) return;
+        setRemote(file ? { list: file.data, sha: file.sha } : { list: builtTimeline, sha: '' });
+        setRemoteState('ready');
+      } catch (error) {
+        if (!alive) return;
+        setRemoteState('error');
+        setTlMsg(`✗ 读取时间表失败：${messageOf(error)}`);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [connected]);
+
+  const reloadTimeline = async () => {
+    setRemoteState('loading');
+    try {
+      const file = await readJsonFile<TimelineItem[]>(TIMELINE_FILE);
+      setRemote(file ? { list: file.data, sha: file.sha } : { list: builtTimeline, sha: '' });
+      setRemoteState('ready');
+      setTlMsg('✓ 已重新读取仓库里的时间表。');
+    } catch (error) {
+      setRemoteState('error');
+      setTlMsg(`✗ 读取失败：${messageOf(error)}`);
+    }
+  };
+
+  const remoteList = useMemo(() => remote?.list ?? [], [remote]);
+
+  /** 展示按日期排，同时记住它在 JSON 数组里的下标，改/删才对得准 */
+  const timelineRows = useMemo(
+    () =>
+      remoteList
+        .map((item, index) => ({ item, index }))
+        .sort((a, b) =>
+          a.item.date < b.item.date ? -1 : a.item.date > b.item.date ? 1 : 0,
+        ),
+    [remoteList],
+  );
+
+  const resetForm = () => {
+    setEditing(null);
+    setForm({ date: today(), title: '', text: '', tag: '', highlight: false, photo: '' });
+    setTlMsg('');
+  };
+
+  const startEdit = (index: number) => {
+    const item = remote?.list[index];
+    if (!item) return;
+    setEditing(index);
+    setConfirming(null);
+    setTlMsg('');
+    setForm({
+      date: item.date,
+      title: item.title,
+      text: item.text ?? '',
+      tag: item.tag ?? '',
+      highlight: Boolean(item.highlight),
+      photo: item.photo ?? '',
+    });
+  };
+
+  /** 提交后 GitHub 会返回新 sha；万一没拿到就重读一次，避免下次写入 409 */
+  const freshSha = async (): Promise<string> => {
+    const file = await readJsonFile<TimelineItem[]>(TIMELINE_FILE);
+    return file?.sha ?? '';
+  };
+
+  const saveTimeline = async (event: FormEvent) => {
     event.preventDefault();
     if (!form.date || !form.title.trim()) {
       setTlMsg('日期和标题是必填的。');
       return;
     }
-    setTlMsg('提交中…');
+    if (!remote) {
+      setTlMsg('还没读到仓库里的时间表，先点「重新读取」。');
+      return;
+    }
+    const item: TimelineItem = {
+      date: form.date,
+      title: form.title.trim(),
+      ...(form.text.trim() ? { text: form.text.trim() } : {}),
+      ...(form.tag.trim() ? { tag: form.tag.trim() } : {}),
+      ...(form.highlight ? { highlight: true } : {}),
+      ...(form.photo ? { photo: form.photo } : {}),
+    };
+    const isEdit = editing !== null;
+    const next = isEdit
+      ? remote.list.map((entry, index) => (index === editing ? item : entry))
+      : [...remote.list, item];
+
+    setSaving(true);
+    setTlMsg(isEdit ? '保存中…' : '提交中…');
     try {
-      const file = await readJsonFile<TimelineItem[]>(TIMELINE_FILE);
-      const list = file?.data ?? builtTimeline;
-      const item: TimelineItem = {
-        date: form.date,
-        title: form.title.trim(),
-        ...(form.text.trim() ? { text: form.text.trim() } : {}),
-        ...(form.tag.trim() ? { tag: form.tag.trim() } : {}),
-        ...(form.highlight ? { highlight: true } : {}),
-        ...(form.photo ? { photo: form.photo } : {}),
-      };
-      await writeJsonFile(
+      const sha = await writeJsonFile(
         TIMELINE_FILE,
-        [...list, item],
-        `时间表：${item.date} ${item.title}`,
-        file?.sha,
+        next,
+        isEdit
+          ? `修改时间点：${item.date} ${item.title}`
+          : `时间表：${item.date} ${item.title}`,
+        remote.sha || undefined,
       );
-      addPendingTimeline(item);
-      setForm({ ...form, title: '', text: '', tag: '', highlight: false });
-      setTlMsg('✓ 已提交。时间表上已经能看到（标着「待构建」），约 1 分钟后正式上线。');
+      setRemote({ list: next, sha: sha || (await freshSha()) });
+      if (!isEdit) addPendingTimeline(item);
+      if (isEdit) {
+        // 改的是哪一条，就把那条旧的待构建标记清掉
+        const before = remote.list[editing ?? -1];
+        if (before) {
+          dropPendingTimeline(
+            (entry) => entry.date === before.date && entry.title === before.title,
+          );
+        }
+      }
+      setEditing(null);
+      setForm({ date: today(), title: '', text: '', tag: '', highlight: false, photo: '' });
+      setTlMsg(
+        isEdit
+          ? '✓ 已保存修改，约 1 分钟后时间表上生效。'
+          : '✓ 已添加。时间表上已经能看到（标着「待构建」），约 1 分钟后正式上线。',
+      );
     } catch (error) {
       setTlMsg(`✗ ${messageOf(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeTimeline = async (index: number) => {
+    const item = remote?.list[index];
+    if (!remote || !item) return;
+    setSaving(true);
+    setTlMsg('删除中…');
+    try {
+      const next = remote.list.filter((_, i) => i !== index);
+      const sha = await writeJsonFile(
+        TIMELINE_FILE,
+        next,
+        `删除时间点：${item.date} ${item.title}`,
+        remote.sha || undefined,
+      );
+      setRemote({ list: next, sha: sha || (await freshSha()) });
+      setConfirming(null);
+      // 删掉的那条如果还挂着「待构建」，一起清掉
+      dropPendingTimeline((entry) => entry.date === item.date && entry.title === item.title);
+      // 下标会整体前移，先退出编辑态，免得编辑到别人的条目上
+      resetForm();
+      setTlMsg(`✓ 已删除「${item.title}」，约 1 分钟后从时间表消失。`);
+    } catch (error) {
+      setTlMsg(`✗ ${messageOf(error)}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -466,87 +603,187 @@ export default function AdminView() {
 
       <section className="admin-card">
         <h2 className="admin-card__title">
-          <span className="admin-card__no">03</span> 新增时间点
+          <span className="admin-card__no">03</span> 时间表
         </h2>
         {connected ? (
-          <form className="admin-form" onSubmit={(event) => void submitTimeline(event)}>
-            <div className="admin-row">
-              <label className="admin-field">
-                <span>日期</span>
-                <input
-                  className="admin-input"
-                  type="date"
-                  value={form.date}
-                  onChange={(event) => setForm({ ...form, date: event.target.value })}
-                  required
-                />
-              </label>
-              <label className="admin-field admin-field--grow">
-                <span>标题</span>
-                <input
-                  className="admin-input"
-                  value={form.title}
-                  placeholder="第一次一起看日出"
-                  onChange={(event) => setForm({ ...form, title: event.target.value })}
-                  required
-                />
-              </label>
-            </div>
-
-            <label className="admin-field">
-              <span>正文（可不填）</span>
-              <textarea
-                className="admin-input admin-textarea"
-                rows={3}
-                value={form.text}
-                placeholder="那天几点起的床、风有多大、你说了什么"
-                onChange={(event) => setForm({ ...form, text: event.target.value })}
-              />
-            </label>
-
-            <div className="admin-row">
-              <label className="admin-field">
-                <span>标签（可不填）</span>
-                <input
-                  className="admin-input"
-                  value={form.tag}
-                  placeholder="旅行 / 纪念 / 日常"
-                  onChange={(event) => setForm({ ...form, tag: event.target.value })}
-                />
-              </label>
-              <label className="admin-field">
-                <span>配图（可不填）</span>
-                <select
-                  className="admin-input"
-                  value={form.photo}
-                  onChange={(event) => setForm({ ...form, photo: event.target.value })}
-                >
-                  <option value="">不配图</option>
-                  {photoNames.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <label className="admin-check">
-              <input
-                type="checkbox"
-                checked={form.highlight}
-                onChange={(event) => setForm({ ...form, highlight: event.target.checked })}
-              />
-              <span>重要节点（时间表上显示成描边卡片）</span>
-            </label>
-
-            <div className="admin-actions">
-              <button type="submit" className="admin-btn admin-btn--primary">
-                提交到时间表
+          <>
+            <div className="admin-list__head">
+              <span className="admin-hint">
+                {remoteState === 'loading'
+                  ? '读取中…'
+                  : remoteState === 'error'
+                    ? '读取失败'
+                    : `仓库里共 ${remoteList.length} 条`}
+              </span>
+              <button
+                type="button"
+                className="admin-btn admin-btn--sm"
+                onClick={() => void reloadTimeline()}
+                disabled={saving || remoteState === 'loading'}
+              >
+                重新读取
               </button>
-              {tlMsg ? <span className="admin-msg">{tlMsg}</span> : null}
             </div>
-          </form>
+
+            {remoteState === 'ready' ? (
+              <ul className="admin-list">
+                {timelineRows.map(({ item, index }) => (
+                  <li
+                    className={`admin-list__row${editing === index ? ' is-editing' : ''}`}
+                    key={`${item.date}-${item.title}-${index}`}
+                  >
+                    {confirming === index ? (
+                      <>
+                        <span className="admin-list__title">
+                          删除「{item.title}」？这条会从时间表里消失。
+                        </span>
+                        <div className="admin-list__actions">
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn--sm admin-btn--danger"
+                            onClick={() => void removeTimeline(index)}
+                            disabled={saving}
+                          >
+                            确认删除
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn--sm"
+                            onClick={() => setConfirming(null)}
+                            disabled={saving}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <time className="admin-list__date">{item.date}</time>
+                        <span className="admin-list__title">{item.title}</span>
+                        {item.photo ? (
+                          <span className="admin-list__flag">配图</span>
+                        ) : null}
+                        {item.highlight ? (
+                          <span className="admin-list__flag">重要</span>
+                        ) : null}
+                        <div className="admin-list__actions">
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn--sm"
+                            onClick={() => startEdit(index)}
+                            disabled={saving}
+                          >
+                            编辑
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn--sm"
+                            onClick={() => setConfirming(index)}
+                            disabled={saving}
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            <form className="admin-form" onSubmit={(event) => void saveTimeline(event)}>
+              <p className="admin-hint">
+                {editing === null
+                  ? '新增一条时间点：'
+                  : `正在编辑「${remoteList[editing]?.title ?? ''}」，改完点保存。`}
+              </p>
+              <div className="admin-row">
+                <label className="admin-field">
+                  <span>日期</span>
+                  <input
+                    className="admin-input"
+                    type="date"
+                    value={form.date}
+                    onChange={(event) => setForm({ ...form, date: event.target.value })}
+                    required
+                  />
+                </label>
+                <label className="admin-field admin-field--grow">
+                  <span>标题</span>
+                  <input
+                    className="admin-input"
+                    value={form.title}
+                    placeholder="第一次一起看日出"
+                    onChange={(event) => setForm({ ...form, title: event.target.value })}
+                    required
+                  />
+                </label>
+              </div>
+
+              <label className="admin-field">
+                <span>正文（可不填）</span>
+                <textarea
+                  className="admin-input admin-textarea"
+                  rows={3}
+                  value={form.text}
+                  placeholder="那天几点起的床、风有多大、你说了什么"
+                  onChange={(event) => setForm({ ...form, text: event.target.value })}
+                />
+              </label>
+
+              <div className="admin-row">
+                <label className="admin-field">
+                  <span>标签（可不填）</span>
+                  <input
+                    className="admin-input"
+                    value={form.tag}
+                    placeholder="旅行 / 纪念 / 日常"
+                    onChange={(event) => setForm({ ...form, tag: event.target.value })}
+                  />
+                </label>
+                <label className="admin-field">
+                  <span>配图（可不填）</span>
+                  <select
+                    className="admin-input"
+                    value={form.photo}
+                    onChange={(event) => setForm({ ...form, photo: event.target.value })}
+                  >
+                    <option value="">不配图</option>
+                    {photoNames.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <label className="admin-check">
+                <input
+                  type="checkbox"
+                  checked={form.highlight}
+                  onChange={(event) => setForm({ ...form, highlight: event.target.checked })}
+                />
+                <span>重要节点（时间表上显示成描边卡片）</span>
+              </label>
+
+              <div className="admin-actions">
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn--primary"
+                  disabled={saving}
+                >
+                  {saving ? '保存中…' : editing === null ? '添加到时间表' : '保存修改'}
+                </button>
+                {editing !== null ? (
+                  <button type="button" className="admin-btn" onClick={resetForm}>
+                    取消编辑
+                  </button>
+                ) : null}
+                {tlMsg ? <span className="admin-msg">{tlMsg}</span> : null}
+              </div>
+            </form>
+          </>
         ) : (
           <p className="admin-hint">先在上面连接 GitHub。</p>
         )}
