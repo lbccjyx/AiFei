@@ -1,185 +1,364 @@
-.tl {
+/* 时间表「长河」：一屏 + 可缩放的时间轴（需求书 5.1） */
+
+.river {
   position: relative;
+  min-height: 100svh;
+  padding-top: 84px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* 贯穿整条时间表的竖线 */
-.tl::before {
-  content: '';
+.river__head {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 0 24px 12px;
+  flex: none;
+}
+
+.river__head .page__title {
+  margin: 6px 0 8px;
+  font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+}
+
+.river__head .page__sub {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.river__stage {
+  position: relative;
+  flex: 0 0 auto;
+  height: clamp(300px, 54svh, 470px);
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.river__stage:active {
+  cursor: grabbing;
+}
+
+/* --- 篇章带 --------------------------------------------------------------- */
+
+.river__bands {
   position: absolute;
-  left: 5px;
-  top: 10px;
-  bottom: 34px;
-  width: 1px;
-  background: var(--border-soft);
+  inset: 0;
+  pointer-events: none;
 }
 
-.tl__group + .tl__group {
-  margin-top: 6px;
+.river__band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed var(--border-soft);
+  padding: 14px 0 0 10px;
+  overflow: hidden;
 }
 
-.tl__year {
-  position: relative;
-  font-family: var(--sans);
-  font-size: 0.95rem;
+.river__band-label {
+  display: block;
+  font-size: 11px;
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   color: var(--muted);
-  padding-left: 28px;
-  margin-bottom: 26px;
-  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.tl__year::before {
-  content: '';
+.river__band-line {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--muted);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+/* --- 轴与节点 ------------------------------------------------------------- */
+
+.river__axis {
   position: absolute;
-  left: 11px;
-  top: 50%;
-  width: 9px;
+  left: 0;
+  right: 0;
+  top: 58%;
   height: 1px;
   background: var(--border-soft);
 }
 
-.tl__items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.tl__item {
-  position: relative;
-  padding-left: 32px;
-  padding-bottom: 38px;
-}
-
-.tl__item:last-child {
-  padding-bottom: 22px;
-}
-
-.tl__dot {
+.river__node {
   position: absolute;
-  left: 0;
-  top: 6px;
-  width: 11px;
-  height: 11px;
-  border: 1.5px solid var(--fg);
+  top: 58%;
+  width: 0;
+  height: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.river__dot {
+  position: absolute;
+  left: -3.5px;
+  top: -3.5px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  border: 1.5px solid var(--fg);
   background: var(--bg);
-  transition: transform 200ms ease;
+  transition:
+    transform 180ms ease,
+    background 180ms ease;
 }
 
-.tl__item--hero .tl__dot {
+.river__node.is-major .river__dot {
+  left: -7px;
+  top: -7px;
+  width: 14px;
+  height: 14px;
+  border: 0;
   background: var(--fg);
-  transform: scale(1.18);
 }
 
-.tl__item:hover .tl__dot {
+.river__node:hover .river__dot,
+.river__node.is-active .river__dot {
   transform: scale(1.25);
 }
 
-.tl__body {
-  padding: 0;
+.river__thumb {
+  position: absolute;
+  left: -26px;
+  top: -80px;
+  width: 52px;
+  height: 52px;
+  /* 全局 img { max-width: 100% } 会把 0 宽父元素里的图压成 0 */
+  max-width: none;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--border-soft);
+  filter: grayscale(1);
+  transition:
+    filter 320ms ease,
+    transform 200ms ease;
 }
 
-.tl__item--hero .tl__body {
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 22px 22px;
+.river__node:hover .river__thumb,
+.river__node.is-active .river__thumb {
+  filter: grayscale(0);
+  transform: translateY(-3px);
 }
 
-.tl__meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.tl__date {
-  font-size: 12px;
+.river__count {
+  position: absolute;
+  left: 9px;
+  top: -20px;
+  font-size: 9.5px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.river__label {
+  position: absolute;
+  left: 0;
+  top: 13px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--fg);
+  pointer-events: none;
+}.river__node.is-major .river__label {
+  font-size: 12.5px;
+  font-weight: 900;
+}
+
+.river__label time {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
-.tl__tag {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  border: 1px solid var(--border-soft);
-  border-radius: 999px;
-  padding: 2px 9px;
-}
-
-.tl__title {
-  font-family: var(--sans);
-  font-size: 1.15rem;
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-  color: var(--fg);
-}
-
-.tl__item--hero .tl__title {
-  font-size: 1.3rem;
-}
-
-.tl__text {
-  margin-top: 8px;
-  font-size: 14.5px;
-  line-height: 1.75;
-  color: var(--muted);
-  max-width: 52ch;
-}
-
-.tl__photo {
-  display: block;
-  margin-top: 16px;
-  width: 100%;
-  max-width: 420px;
-  /* 竖图别被强行裁成 4:3，保留原比例，超高时才裁 */
-  max-height: 460px;
-  object-fit: cover;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.tl__now {
-  position: relative;
-  padding-left: 32px;
-  padding-top: 6px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tl__pending {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+.river__label em {
+  font-style: normal;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
   color: var(--bg);
   background: var(--fg);
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 1px 6px;
   opacity: 0.7;
 }
 
-.tl__add {
-  display: block;
-  margin-top: 26px;
+/* --- 今天 --------------------------------------------------------------- */
+
+.river__now {
+  position: absolute;
+  top: calc(58% - 104px);
+  transform: translateX(-100%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.river__now-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg);
+  animation: river-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes river-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--fg) 30%, transparent);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+/* --- 控件 --------------------------------------------------------------- */
+
+.river__controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.river__pos {
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.river__btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.river__btn:hover:not(:disabled) {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.river__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.river__btn--wide {
+  width: auto;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+/* --- 迷你进度条 ----------------------------------------------------------- */
+
+.river__mini {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 10px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border-soft);
+  pointer-events: none;
+}
+
+.river__mini-view {
+  position: absolute;
+  top: -1px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fg);
+  opacity: 0.5;
+  transition:
+    left 120ms ease,
+    width 120ms ease;
+}
+
+/* --- 底部 --------------------------------------------------------------- */
+
+.river__foot {
+  flex: none;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 10px 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.river__hint {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.river__add {
   border: 1.5px dashed var(--border-soft);
   border-radius: 999px;
   background: transparent;
-  padding: 9px 18px;
+  padding: 8px 16px;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--muted);
   cursor: pointer;
   transition:
@@ -187,51 +366,172 @@
     border-color 160ms ease;
 }
 
-.tl__add:hover {
+.river__add:hover {
   color: var(--fg);
   border-color: var(--fg);
 }
 
-.tl__pulse {
-  position: absolute;
-  left: 1px;
-  top: 8px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--fg);
-  animation: tl-pulse 2.4s ease-in-out infinite;
+/* --- 详情抽屉 ------------------------------------------------------------- */
+
+.river__drawer {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  max-height: 64svh;
+  overflow: auto;
+  padding: 14px 16px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: river-drawer-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes tl-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--fg) 35%, transparent);
-    opacity: 1;
+@keyframes river-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
   }
-  50% {
-    box-shadow: 0 0 0 6px transparent;
-    opacity: 0.55;
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.river__drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.river__drawer-head time {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.river__drawer-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.river__drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.river__entry {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.river__entry-img {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.river__entry-title {
+  font-family: var(--sans);
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.river__entry-text {
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.river__entry-tag {
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* --- 小屏 --------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .river {
+    padding-top: 76px;
+  }
+
+  .river__stage {
+    height: clamp(260px, 46svh, 360px);
+  }
+
+  .river__head {
+    padding: 0 16px 8px;
+  }
+
+  .river__head .page__sub {
+    font-size: 12px;
+  }
+
+  .river__band-line {
+    display: none;
+  }
+
+  .river__label {
+    font-size: 11px;
+  }
+
+  .river__thumb {
+    width: 40px;
+    height: 40px;
+    left: -20px;
+    top: -64px;
+  }
+
+  .river__controls {
+    top: 8px;
+    right: 8px;
+  }
+
+  .river__pos {
+    display: none;
+  }
+
+  .river__drawer {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 58svh;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tl__pulse {
+  .river__now-dot {
     animation: none;
   }
-}
 
-@media (max-width: 560px) {
-  .tl__item {
-    padding-left: 24px;
-    padding-bottom: 32px;
+  .river__drawer {
+    animation: none;
   }
 
-  .tl__item--hero .tl__body {
-    padding: 16px 16px 18px;
-  }
-
-  .tl__now {
-    padding-left: 24px;
+  .river__dot,
+  .river__thumb,
+  .river__mini-view {
+    transition: none;
   }
 }

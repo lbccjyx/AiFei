@@ -2,8 +2,16 @@ import { useCallback, useMemo, useState } from 'react';
 import { photos } from '../lib/photos';
 import { mergePhotos, usePending } from '../lib/pending';
 import PhotoLightbox from '../components/PhotoLightbox';
+import Reveal from '../components/effects/Reveal';
 import { isPlainClick, usePageReveal } from '../components/page-reveal-context';
 import './GalleryView.css';
+
+/** 编辑式版面：每 7 张出现一个跨两列的「主图」，每 7 张出现一个竖长图 */
+function tileClass(index: number): string {
+  if (index % 7 === 0) return ' is-wide';
+  if (index % 7 === 3) return ' is-tall';
+  return '';
+}
 
 export default function GalleryView() {
   const pending = usePending();
@@ -21,8 +29,7 @@ export default function GalleryView() {
         <p className="eyebrow">Photos</p>
         <h1 className="page__title">恋爱照片</h1>
         <p className="page__sub">
-          {all.length} 张。点开可以左右翻;新照片在「编辑」页上传,提交后马上在这里出现,
-          构建完成就变成正式内容。
+          {all.length} 张。灰度待着，鼠标放上去才亮起来；点开可以左右翻。
         </p>
       </header>
 
@@ -33,7 +40,13 @@ export default function GalleryView() {
       ) : (
         <div className="gallery">
           {all.map((photo, index) => (
-            <figure className={`ph${photo.pending ? ' ph--pending' : ''}`} key={photo.src}>
+            <Reveal
+              key={photo.src}
+              className={`ph${tileClass(index)}${photo.pending ? ' ph--pending' : ''}`}
+              delay={Math.min(index, 6) * 40}
+              duration={520}
+              y={18}
+            >
               <button
                 type="button"
                 className="ph__btn"
@@ -59,7 +72,7 @@ export default function GalleryView() {
                 <span className="ph__cap">{photo.caption}</span>
               </button>
               {photo.pending ? <span className="ph__badge">待构建</span> : null}
-            </figure>
+            </Reveal>
           ))}
         </div>
       )}
