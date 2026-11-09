@@ -1,4 +1,4 @@
-import { useMemo, useRef, type MouseEvent } from 'react';
+import { lazy, Suspense, useMemo, useRef, type MouseEvent } from 'react';
 import { utils } from 'animejs';
 import { getPosts } from '../lib/content';
 import { useParallax, useScrollTransform } from '../lib/motion';
@@ -6,7 +6,12 @@ import { HERO_FLY_RUNWAY_VH } from '../lib/scroll';
 import { isPlainClick, usePageReveal } from '../components/page-reveal-context';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useSnapScroll } from '../hooks/useSnapScroll';
-import ThreeHero from '../components/ThreeHero';
+/**
+ * three.js 有 600 KB 左右。它是首屏那片粒子云，只在这个页面出现 ——
+ * 拆成单独的 chunk 之后，别的页面（时间表 / 照片 / 日记…）完全不会下载它，
+ * 首屏文字也能先画出来，粒子云晚半拍再补上。
+ */
+const ThreeHero = lazy(() => import('../components/ThreeHero'));
 import PostCard from '../components/PostCard';
 import Reveal from '../components/effects/Reveal';
 import Fx from '../components/Fx';
@@ -108,7 +113,9 @@ export default function HomeView() {
         style={{ height: `calc(100svh + ${reduced ? 0 : HERO_FLY_RUNWAY_VH}vh)` }}
       >
         <section className="home__hero" ref={heroRef}>
-          <ThreeHero />
+          <Suspense fallback={<div className="three-hero three-hero--fallback" aria-hidden="true" />}>
+            <ThreeHero />
+          </Suspense>
           <div className="home__hero-inner" ref={heroInnerRef}>
             <Reveal delay={40}>
               <p className="home__eyebrow">{siteConfig.name}</p>

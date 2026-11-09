@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { canPrefetch } from '../lib/prefetch';
 import './MusicPlayer.css';
 
 /**
@@ -13,6 +14,10 @@ import './MusicPlayer.css';
  *
  * 浏览器不允许无交互自动播放：进页面会先试一次，被拦下就等用户第一次点击
  * 页面任意位置时开始。按钮随时可以暂停/继续。
+ *
+ * 这首歌 2.3 MB —— 比整页首屏的图片还重。所以「进页面就试」改成了「等页面
+ * 加载完、再闲一秒之后才试」，别让它跟照片抢带宽；开了省流量 / 2G-3G 的设备
+ * 干脆不自动播，等用户自己点按钮。（canPrefetch 就是同一套网络判断。）
  */
 const TRACK = {
   title: '一笑倾城',
@@ -42,32 +47,72 @@ export default function MusicPlayer() {
   const [open, setOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const userPaused = useRef(false);
+  /** 用户等不及了直接点按钮：跳过延时，马上探测并播放 */
+  const startNow = useRef<() => void>(() => {});
 
-  // 探测音频文件：能读出元数据就用原生播放器，否则退回网易云外链
+  // 探测音频文件：能读出元数据就用原生播放器，否则退回网易云外链。
+  // 延迟到「页面 load 完 + 1.2 秒」之后，让图片先走。
   useEffect(() => {
-    const probe = new Audio();
-    probe.preload = 'metadata';
-    let settled = false;
+    let disposed = false;
+    let probe: HTMLAudioElement | null = null;
+    let settleTimer = 0;
+    let startTimer = 0;
 
-    const finish = (ok: boolean) => {
-      if (settled) return;
-      settled = true;
-      probe.removeEventListener('loadedmetadata', onOk);
-      probe.removeEventListener('error', onErr);
-      probe.src = '';
-      setSource(ok ? 'file' : 'embed');
+    const startProbe = () => {
+      if (disposed || probe) return;
+      probe = new Audio();
+      probe.preload = 'metadata';
+      let settled = false;
+
+      const finish = (ok: boolean) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(settleTimer);
+        probe?.removeEventListener('loadedmetadata', onOk);
+        probe?.removeEventListener('error', onErr);
+        if (probe) probe.src = '';
+        if (!disposed) setSource(ok ? 'file' : 'embed');
+      };
+      const onOk = () => finish(true);
+      const onErr = () => finish(false);
+
+      probe.addEventListener('loadedmetadata', onOk);
+      probe.addEventListener('error', onErr);
+      probe.src = FILE_URL;
+
+      settleTimer = window.setTimeout(() => finish(false), 5000);
     };
-    const onOk = () => finish(true);
-    const onErr = () => finish(false);
 
-    probe.addEventListener('loadedmetadata', onOk);
-    probe.addEventListener('error', onErr);
-    probe.src = FILE_URL;
+    const kick = () => {
+      if (disposed || startTimer) return;
+      startTimer = window.setTimeout(startProbe, 1200);
+    };
 
-    const timer = window.setTimeout(() => finish(false), 5000);
+    startNow.current = () => {
+      window.clearTimeout(startTimer);
+      startTimer = 1;
+      startProbe();
+    };
+
+    let fallback = 0;
+    if (document.readyState === 'complete') {
+      kick();
+    } else {
+      window.addEventListener('load', kick, { once: true });
+      // 图片多的时候 load 会拖很久，别无限等
+      fallback = window.setTimeout(kick, 8000);
+    }
+
     return () => {
-      window.clearTimeout(timer);
-      finish(false);
+      disposed = true;
+      window.clearTimeout(startTimer);
+      window.clearTimeout(settleTimer);
+      window.clearTimeout(fallback);
+      window.removeEventListener('load', kick);
+      if (probe) {
+        probe.removeAttribute('src');
+        probe.load();
+      }
     };
   }, []);
 
@@ -85,7 +130,8 @@ export default function MusicPlayer() {
       });
     };
 
-    play();
+    // 省流量 / 慢网不主动放：2.3 MB 的歌等她想听的时候再下
+    if (canPrefetch()) play();
 
     const onGesture = (event: Event) => {
       const target = event.target as Element | null;
@@ -103,7 +149,10 @@ export default function MusicPlayer() {
   }, [source]);
 
   const toggle = () => {
-    if (source === 'checking') return;
+    if (source === 'checking') {
+      startNow.current();
+      return;
+    }
     if (source === 'embed') {
       setOpen((prev) => !prev);
       return;
