@@ -25,51 +25,25 @@ export default function TodoView() {
     todos: builtTodos,
     done,
     recorded,
+    pending,
+    pendingCount,
     toggle,
-    reset,
+    save,
+    revert,
     saving,
     canCommit,
-    hasOverrides,
     doneCount,
   } = useTodos();
-  const pending = usePending();
+  const pendingState = usePending();
   const startReveal = usePageReveal();
   const [filter, setFilter] = useState<TodoFilter>('全部');
   const [status, setStatus] = useState<Status | null>(null);
   const statusTimer = useRef<number | null>(null);
 
-  useEffect(
-    () => () => {
-      if (statusTimer.current) window.clearTimeout(statusTimer.current);
-    },
-    [],
-  );
-
-  const notify = (next: Status, ms = 6500) => {
-    setStatus(next);
-    if (statusTimer.current) window.clearTimeout(statusTimer.current);
-    statusTimer.current = window.setTimeout(() => setStatus(null), ms);
-  };
-
-  /** 点一下：先本地生效，提交到仓库后再告诉结果 */
-  const onToggle = async (id: string) => {
-    const result = await toggle(id);
-    if (result.ok) {
-      notify({ kind: 'ok', text: '✓ 已提交到仓库，约 1 分钟后生效（所有设备都能看到）。' });
-    } else if (result.reason === 'no-token') {
-      notify({
-        kind: 'warn',
-        text: '只记在这台设备。想永久保存：去「编辑」页填一次 token，之后点一下就直接提交到仓库。',
-      }, 10000);
-    } else {
-      notify({ kind: 'error', text: `✗ ${result.message}` }, 9000);
-    }
-  };
-
   // 构建进站点的 + 刚提交还没构建的
   const entries = useMemo(
-    () => mergeTodos(builtTodos, pending.todos),
-    [builtTodos, pending.todos],
+    () => mergeTodos(builtTodos, pendingState.todos),
+    [builtTodos, pendingState.todos],
   );
   const all = useMemo(() => entries.map((entry) => entry.todo), [entries]);
   const pendingTexts = useMemo(
@@ -90,6 +64,53 @@ export default function TodoView() {
 
   const percent = total === 0 ? 0 : Math.round((doneCount / total) * 100);
 
+  useEffect(
+    () => () => {
+      if (statusTimer.current) window.clearTimeout(statusTimer.current);
+    },
+    [],
+  );
+
+  // 还有没保存的改动时，刷新 / 关页面提醒一下
+  useEffect(() => {
+    if (pendingCount === 0) return;
+    const guard = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, [pendingCount]);
+
+  const notify = (next: Status, ms = 6500) => {
+    setStatus(next);
+    if (statusTimer.current) window.clearTimeout(statusTimer.current);
+    statusTimer.current = window.setTimeout(() => setStatus(null), ms);
+  };
+
+  const onSave = async () => {
+    const result = await save();
+    if (result.ok) {
+      if (result.count === 0) {
+        notify({ kind: 'ok', text: '仓库里已经是这个状态了，没有产生新提交。' });
+      } else if (result.missing.length > 0) {
+        notify({
+          kind: 'warn',
+          text: `✓ 保存了 ${result.count} 处；有 ${result.missing.length} 条还没构建进仓库，这次先跳过。`,
+        }, 9000);
+      } else {
+        notify({ kind: 'ok', text: `✓ 已保存 ${result.count} 处改动，约 1 分钟后生效。` });
+      }
+    } else if (result.reason === 'no-token') {
+      notify({
+        kind: 'warn',
+        text: '保存需要 token：去「编辑」页填一次，之后就能把改动写进仓库。',
+      }, 10000);
+    } else {
+      notify({ kind: 'error', text: `✗ ${result.message}` }, 9000);
+    }
+  };
+
   return (
     <div className="page">
       <header className="page__head">
@@ -97,8 +118,8 @@ export default function TodoView() {
         <h1 className="page__title">要一起做的事</h1>
         <p className="page__sub">
           {canCommit
-            ? `${total} 件小事，勾掉 ${doneCount} 件。点一下就会写进仓库，约 1 分钟后所有设备都同步。`
-            : `${total} 件小事，勾掉 ${doneCount} 件。点一下先记在这台设备；去「编辑」页填一次 token，之后点一下就直接写进仓库。`}
+            ? `${total} 件小事，勾掉 ${doneCount} 件。点一下先记在页面上，点「保存改动」写进仓库（约 1 分钟后所有设备同步）。`
+            : `${total} 件小事，勾掉 ${doneCount} 件。点一下先记在页面上；想永久保存，去「编辑」页填一次 token。`}
         </p>
       </header>
 
@@ -144,6 +165,7 @@ export default function TodoView() {
         <ul className="todo__list">
           {visible.map((todo, index) => {
             const isDone = Boolean(done[todo.id]);
+            const unsaved = pending[todo.id] !== undefined;
             return (
               <li key={todo.id}>
                 <Reveal delay={Math.min(index, 6) * 40} duration={380}>
@@ -151,16 +173,15 @@ export default function TodoView() {
                     type="button"
                     className="todo__row"
                     data-done={isDone}
-                    data-saving={Boolean(saving[todo.id])}
+                    data-unsaved={unsaved ? 'true' : 'false'}
                     aria-pressed={isDone}
-                    aria-busy={Boolean(saving[todo.id])}
-                    onClick={() => void onToggle(todo.id)}
+                    onClick={() => toggle(todo.id)}
                   >
                     <span className="todo__box" aria-hidden="true">
                       {isDone ? <CheckMark /> : null}
                     </span>
                     <span className="todo__text">{todo.text}</span>
-                    {recorded[todo.id] && isDone ? (
+                    {recorded[todo.id] && isDone && !unsaved ? (
                       <span className="todo__record">
                         {todo.doneDate ? `已记录 · ${todo.doneDate}` : '已记录'}
                       </span>
@@ -168,7 +189,7 @@ export default function TodoView() {
                     {pendingTexts.has(todo.text) ? (
                       <span className="todo__pending">待构建</span>
                     ) : null}
-                    {saving[todo.id] ? <span className="todo__saving">提交中…</span> : null}
+                    {unsaved ? <span className="todo__unsaved">未保存</span> : null}
                     <span className="todo__cat">{todo.category}</span>
                   </button>
                 </Reveal>
@@ -183,8 +204,24 @@ export default function TodoView() {
       <div className="todo__foot">
         <span className="todo__foot-note">
           {filter === '全部' ? '全部清单' : `${filter}清单`}里已完成 {doneOfFilter} 件
+          {pendingCount > 0 ? ` · 有 ${pendingCount} 处未保存` : ''}
         </span>
         <div className="todo__foot-actions">
+          {pendingCount > 0 ? (
+            <>
+              <button
+                type="button"
+                className="todo__save"
+                onClick={() => void onSave()}
+                disabled={saving}
+              >
+                {saving ? '保存中…' : `保存改动（${pendingCount}）`}
+              </button>
+              <button type="button" className="todo__reset" onClick={revert} disabled={saving}>
+                撤销
+              </button>
+            </>
+          ) : null}
           <button
             type="button"
             className="todo__add"
@@ -205,11 +242,6 @@ export default function TodoView() {
               }}
             >
               填 token（永久记录）
-            </button>
-          ) : null}
-          {hasOverrides ? (
-            <button type="button" className="todo__reset" onClick={reset}>
-              清除本地标记
             </button>
           ) : null}
         </div>

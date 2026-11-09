@@ -182,8 +182,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 正在提交到 GitHub */
-.todo__saving {
+/* 改过但还没保存 */
+.todo__unsaved {
   flex: none;
   font-size: 10.5px;
   font-weight: 800;
@@ -192,17 +192,10 @@
   border: 1px dashed var(--border-soft);
   border-radius: 999px;
   padding: 1.5px 8px;
-  animation: todo-saving 1.4s ease-in-out infinite;
 }
 
-@keyframes todo-saving {
-  50% {
-    opacity: 0.45;
-  }
-}
-
-.todo__row[data-saving='true'] {
-  cursor: progress;
+.todo__row[data-unsaved='true'] .todo__box {
+  border-style: dashed;
 }
 
 /* 提交结果提示 */
@@ -228,6 +221,32 @@
 .todo__status.is-error {
   border-color: var(--fg);
   color: var(--fg);
+}
+
+/* 「保存改动」——有未保存改动时才出现，做成实心按钮带一点重量 */
+.todo__save {
+  border: 1.5px solid var(--fg);
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--bg);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.todo__save:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.todo__save:disabled {
+  opacity: 0.5;
+  cursor: progress;
 }
 
 .todo__foot-actions {
