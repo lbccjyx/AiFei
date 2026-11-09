@@ -169,6 +169,9 @@ export default function TimelineView() {
   const movedRef = useRef(false);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    // 每次按下都当作一次新的手势：否则拖动过一次之后 movedRef 会一直为 true，
+    // 后面所有点击（圆点、缩略图、标签）都会被当成「刚拖完」丢掉。
+    movedRef.current = false;
     if ((event.target as HTMLElement).closest('.river__node, .river__controls, .river__drawer')) {
       return;
     }
@@ -176,7 +179,6 @@ export default function TimelineView() {
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     if (pointers.current.size === 1) {
       drag.current = { x: event.clientX, pan: view.pan };
-      movedRef.current = false;
     }
   };
 
@@ -412,7 +414,7 @@ export default function TimelineView() {
 
       <div className="river__foot">
         <span className="river__hint">
-          同一天的几条会合成一个点（角标是条数）· 点一下看正文 · Esc 回到全景
+          同一天的几条会合成一个点（角标是条数）· 点圆点、照片或标题都能看正文 · Esc 回到全景
         </span>
         <button
           type="button"

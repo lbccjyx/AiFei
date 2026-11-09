@@ -102,6 +102,31 @@
   cursor: pointer;
 }
 
+/* 节点本体是 0×0 的定位锚点，真正能点的只有圆的像素 —— 手指根本戳不中。
+   这里用两块透明的伪元素把「可点区域」撑起来：一块罩住上面的缩略图，
+   一块把中间那个圆放大成 36px（触屏 44px）。外观不变，手感完全不一样。 */
+.river__node::before,
+.river__node::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: none;
+}
+
+.river__node::before {
+  left: -18px;
+  top: -18px;
+  width: 36px;
+  height: 36px;
+}
+
+.river__node::after {
+  left: -30px;
+  top: -84px;
+  width: 60px;
+  height: 60px;
+}
+
 .river__dot {
   position: absolute;
   left: -3.5px;
@@ -142,15 +167,14 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--border-soft);
-  filter: grayscale(1);
-  transition:
-    filter 320ms ease,
-    transform 200ms ease;
+  cursor: pointer;
+  /* 照片默认就是彩色：手机上根本没有 hover，灰度等于永远看不到彩色 */
+  filter: none;
+  transition: transform 200ms ease;
 }
 
 .river__node:hover .river__thumb,
 .river__node.is-active .river__thumb {
-  filter: grayscale(0);
   transform: translateY(-3px);
 }
 
@@ -181,8 +205,12 @@
   font-weight: 700;
   line-height: 1.3;
   color: var(--fg);
-  pointer-events: none;
-}.river__node.is-major .river__label {
+  /* 标签本身就是「点一下看正文」的入口，别让它把点击漏给舞台 */
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.river__node.is-major .river__label {
   font-size: 12.5px;
   font-weight: 900;
 }
@@ -500,6 +528,21 @@
     height: 40px;
     left: -20px;
     top: -64px;
+  }
+
+  /* 触屏的手指比鼠标粗，可点区域再放大一圈 */
+  .river__node::before {
+    left: -22px;
+    top: -22px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .river__node::after {
+    left: -24px;
+    top: -68px;
+    width: 48px;
+    height: 48px;
   }
 
   .river__controls {
