@@ -207,21 +207,6 @@ export default function TodoView() {
           {pendingCount > 0 ? ` · 有 ${pendingCount} 处未保存` : ''}
         </span>
         <div className="todo__foot-actions">
-          {pendingCount > 0 ? (
-            <>
-              <button
-                type="button"
-                className="todo__save"
-                onClick={() => void onSave()}
-                disabled={saving}
-              >
-                {saving ? '保存中…' : `保存改动（${pendingCount}）`}
-              </button>
-              <button type="button" className="todo__reset" onClick={revert} disabled={saving}>
-                撤销
-              </button>
-            </>
-          ) : null}
           <button
             type="button"
             className="todo__add"
@@ -246,6 +231,31 @@ export default function TodoView() {
           ) : null}
         </div>
       </div>
+
+      {/* 有未保存的改动就浮在底部：17 条的清单里，页脚的按钮根本看不见 */}
+      {pendingCount > 0 ? (
+        <div className="todo__savebar" role="region" aria-label="未保存的改动">
+          <span className="todo__savebar-text">{pendingCount} 处未保存</span>
+          <div className="todo__savebar-actions">
+            <button
+              type="button"
+              className="todo__reset"
+              onClick={revert}
+              disabled={saving}
+            >
+              撤销
+            </button>
+            <button
+              type="button"
+              className="todo__save"
+              onClick={() => void onSave()}
+              disabled={saving}
+            >
+              {saving ? '保存中…' : '保存改动'}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

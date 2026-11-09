@@ -249,6 +249,67 @@
   cursor: progress;
 }
 
+/* 底部浮条：悬浮在左下角音乐按钮 / 右下角主题按钮上方，滚到哪都看得见 */
+.todo__savebar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 86px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px 8px 16px;
+  border: 1.5px solid var(--fg);
+  border-radius: 999px;
+  background: var(--bg);
+  box-shadow: 0 10px 30px rgba(8, 6, 13, 0.12);
+  animation: todo-savebar-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes todo-savebar-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.todo__savebar-text {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.todo__savebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 420px) {
+  .todo__savebar {
+    bottom: 78px;
+    padding-left: 14px;
+  }
+
+  .todo__savebar-text {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .todo__savebar {
+    animation: none;
+  }
+}
+
 .todo__foot-actions {
   display: flex;
   align-items: center;
