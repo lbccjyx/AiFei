@@ -182,6 +182,54 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 正在提交到 GitHub */
+.todo__saving {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border: 1px dashed var(--border-soft);
+  border-radius: 999px;
+  padding: 1.5px 8px;
+  animation: todo-saving 1.4s ease-in-out infinite;
+}
+
+@keyframes todo-saving {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.todo__row[data-saving='true'] {
+  cursor: progress;
+}
+
+/* 提交结果提示 */
+.todo__status {
+  margin-top: 14px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.todo__status.is-ok {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
+.todo__status.is-warn {
+  border-style: dashed;
+}
+
+.todo__status.is-error {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
 .todo__foot-actions {
   display: flex;
   align-items: center;

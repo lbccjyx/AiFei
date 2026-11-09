@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TodoCategory } from '../data/todos';
 import { todos as allTodos } from '../data/todos';
+import { getToken } from './gh';
+import { commitTodoDone, type CommitResult } from './todo-remote';
 
 /**
  * 待办清单的勾选状态。
  *
- * 两层：
- *   1. **文件里的记录** —— `todos.json` 里写了 `"done": true` 的，构建上线后
- *      所有设备都显示已完成。这是「真正记下来了」的那一层。
- *   2. **浏览器里的临时勾选** —— 网页上点的那一下只存在 localStorage，换设备 /
- *      清缓存就没了。想长期保留，就把那条写进文件（或 `npm run todo -- done <id>`）。
+ * 三层：
+ *   1. **仓库里的记录** —— `todos.json` 里写了 `"done": true` 的，所有设备都显示已完成。
+ *   2. **提交中的临时状态** —— 点一下先进这里，同时把改动提交到 GitHub。
+ *   3. **浏览器里的临时勾选** —— 没配 token 时退回到这一层：只在本机生效，
+ *      换设备 / 清缓存就没了。
  *
- * 合并规则：本地点过的那一条以本地为准（可以临时取消文件里记的完成）；
- * 没点过的，看文件。
+ * 配了 token（在「编辑」页填一次）之后，点一下 = 一次提交，约 1 分钟后
+ * 重新构建完成，这条记录就永久留在仓库里。
  */
 const STORAGE_KEY = 'aifei:todos:v1';
 
@@ -35,10 +37,24 @@ function readOverrides(): Overrides {
   }
 }
 
+/** 写一条覆盖值；和文件里一致就不必占地方 */
+function withOverride(
+  prev: Overrides,
+  id: string,
+  value: boolean,
+  recorded: Record<string, boolean>,
+): Overrides {
+  const next = { ...prev };
+  if (Boolean(recorded[id]) === value) delete next[id];
+  else next[id] = value;
+  return next;
+}
+
 export type TodoFilter = '全部' | TodoCategory;
 
 export function useTodos() {
   const [overrides, setOverrides] = useState<Overrides>(readOverrides);
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
@@ -65,22 +81,36 @@ export function useTodos() {
     return map;
   }, [overrides, recorded]);
 
+  /** 配过 token 才能提交到仓库（没有就只记本机） */
+  const canCommit = useMemo(() => Boolean(getToken()), []);
+
+  /**
+   * 点一下：先本地生效（立刻有反馈），再把改动提交到仓库。
+   * 提交失败会退回原状，并把原因交给调用方去提示。
+   */
   const toggle = useCallback(
-    (id: string) => {
-      setOverrides((prev) => {
-        const current = prev[id] ?? Boolean(recorded[id]);
-        const value = !current;
-        const next = { ...prev };
-        // 和文件一致就不用记，存储保持干净
-        if (Boolean(recorded[id]) === value) delete next[id];
-        else next[id] = value;
-        return next;
-      });
+    async (id: string): Promise<CommitResult> => {
+      const next = !done[id];
+      setOverrides((prev) => withOverride(prev, id, next, recorded));
+      setSaving((prev) => ({ ...prev, [id]: true }));
+      try {
+        const result = await commitTodoDone(id, next);
+        if (!result.ok && result.reason === 'error') {
+          setOverrides((prev) => withOverride(prev, id, !next, recorded));
+        }
+        return result;
+      } finally {
+        setSaving((prev) => {
+          const rest = { ...prev };
+          delete rest[id];
+          return rest;
+        });
+      }
     },
-    [recorded],
+    [done, recorded],
   );
 
-  /** 只清本地临时勾选，文件里的记录不受影响 */
+  /** 只清本地临时勾选，仓库里的记录不受影响 */
   const reset = useCallback(() => setOverrides({}), []);
 
   const doneCount = useMemo(
@@ -93,12 +123,17 @@ export function useTodos() {
     [recorded],
   );
 
+  const hasOverrides = Object.keys(overrides).length > 0;
+
   return {
     todos: allTodos,
     done,
     recorded,
     toggle,
     reset,
+    saving,
+    canCommit,
+    hasOverrides,
     doneCount,
     recordedCount,
     total: allTodos.length,

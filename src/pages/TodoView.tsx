@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { type TodoCategory } from '../data/todos';
 import { useTodos, type TodoFilter } from '../lib/todos';
 import { mergeTodos, usePending } from '../lib/pending';
@@ -10,6 +10,8 @@ import './TodoView.css';
 const CATEGORIES: TodoCategory[] = ['旅行', '美食', '日常', '未来'];
 const FILTERS: TodoFilter[] = ['全部', ...CATEGORIES];
 
+type Status = { kind: 'ok' | 'warn' | 'error'; text: string };
+
 function CheckMark() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -19,10 +21,50 @@ function CheckMark() {
 }
 
 export default function TodoView() {
-  const { todos: builtTodos, done, recorded, toggle, reset, doneCount } = useTodos();
+  const {
+    todos: builtTodos,
+    done,
+    recorded,
+    toggle,
+    reset,
+    saving,
+    canCommit,
+    hasOverrides,
+    doneCount,
+  } = useTodos();
   const pending = usePending();
   const startReveal = usePageReveal();
   const [filter, setFilter] = useState<TodoFilter>('全部');
+  const [status, setStatus] = useState<Status | null>(null);
+  const statusTimer = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (statusTimer.current) window.clearTimeout(statusTimer.current);
+    },
+    [],
+  );
+
+  const notify = (next: Status, ms = 6500) => {
+    setStatus(next);
+    if (statusTimer.current) window.clearTimeout(statusTimer.current);
+    statusTimer.current = window.setTimeout(() => setStatus(null), ms);
+  };
+
+  /** 点一下：先本地生效，提交到仓库后再告诉结果 */
+  const onToggle = async (id: string) => {
+    const result = await toggle(id);
+    if (result.ok) {
+      notify({ kind: 'ok', text: '✓ 已提交到仓库，约 1 分钟后生效（所有设备都能看到）。' });
+    } else if (result.reason === 'no-token') {
+      notify({
+        kind: 'warn',
+        text: '只记在这台设备。想永久保存：去「编辑」页填一次 token，之后点一下就直接提交到仓库。',
+      }, 10000);
+    } else {
+      notify({ kind: 'error', text: `✗ ${result.message}` }, 9000);
+    }
+  };
 
   // 构建进站点的 + 刚提交还没构建的
   const entries = useMemo(
@@ -54,8 +96,9 @@ export default function TodoView() {
         <p className="eyebrow">Bucket list</p>
         <h1 className="page__title">要一起做的事</h1>
         <p className="page__sub">
-          {total} 件小事，勾掉 {doneCount} 件。点一下先记在这台设备；
-          标「已记录」的是写进仓库的，换台手机也还亮着。
+          {canCommit
+            ? `${total} 件小事，勾掉 ${doneCount} 件。点一下就会写进仓库，约 1 分钟后所有设备都同步。`
+            : `${total} 件小事，勾掉 ${doneCount} 件。点一下先记在这台设备；去「编辑」页填一次 token，之后点一下就直接写进仓库。`}
         </p>
       </header>
 
@@ -108,8 +151,10 @@ export default function TodoView() {
                     type="button"
                     className="todo__row"
                     data-done={isDone}
+                    data-saving={Boolean(saving[todo.id])}
                     aria-pressed={isDone}
-                    onClick={() => toggle(todo.id)}
+                    aria-busy={Boolean(saving[todo.id])}
+                    onClick={() => void onToggle(todo.id)}
                   >
                     <span className="todo__box" aria-hidden="true">
                       {isDone ? <CheckMark /> : null}
@@ -123,6 +168,7 @@ export default function TodoView() {
                     {pendingTexts.has(todo.text) ? (
                       <span className="todo__pending">待构建</span>
                     ) : null}
+                    {saving[todo.id] ? <span className="todo__saving">提交中…</span> : null}
                     <span className="todo__cat">{todo.category}</span>
                   </button>
                 </Reveal>
@@ -131,6 +177,8 @@ export default function TodoView() {
           })}
         </ul>
       )}
+
+      {status ? <p className={`todo__status is-${status.kind}`}>{status.text}</p> : null}
 
       <div className="todo__foot">
         <span className="todo__foot-note">
@@ -147,9 +195,21 @@ export default function TodoView() {
           >
             ＋ 添加一件
           </button>
-          {doneCount > 0 ? (
+          {!canCommit ? (
+            <button
+              type="button"
+              className="todo__add"
+              onClick={(event) => {
+                if (!isPlainClick(event)) return;
+                startReveal('admin', event.clientX, event.clientY);
+              }}
+            >
+              填 token（永久记录）
+            </button>
+          ) : null}
+          {hasOverrides ? (
             <button type="button" className="todo__reset" onClick={reset}>
-              重置勾选
+              清除本地标记
             </button>
           ) : null}
         </div>
