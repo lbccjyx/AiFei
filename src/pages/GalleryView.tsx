@@ -71,6 +71,12 @@ export default function GalleryView() {
                     photo={photo}
                     alt={photo.caption}
                     className="ph__img"
+                    /* 跨两列的「主图」要按两列宽算，不然会去拿小图、放大发虚 */
+                    sizes={
+                      tileClass(index).includes('is-wide')
+                        ? '(max-width: 860px) 92vw, 62vw'
+                        : '(max-width: 860px) 46vw, 30vw'
+                    }
                     onError={() =>
                       setBroken((prev) =>
                         prev[photo.src] ? prev : { ...prev, [photo.src]: true },

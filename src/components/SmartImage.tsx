@@ -10,13 +10,15 @@ export type SmartImageProps = {
   eager?: boolean;
   /** 缩略图加载失败（比如「待构建」的照片还没发布完） */
   onError?: () => void;
+  /** 配合 srcSet 用：这个位置大概多宽（默认整屏宽） */
+  sizes?: string;
 };
 
 /**
  * 三段式加载：
  *
  *   1. blur  24px 的模糊占位，base64 内联在 JS 里 —— 0 请求，先把画面撑住
- *   2. thumb 720px 缩略图，一进视口就换上去（通常几十 KB）
+ *   2. thumb 缩略图（420 / 720 两档，浏览器按格子宽度自己挑）
  *   3. full  1600px 大图，等浏览器闲下来再换；如果后台预取已经把它拿下来了，
  *            这一次是直接命中缓存，几乎立刻就好
  *
@@ -28,6 +30,7 @@ export default function SmartImage({
   className,
   eager = false,
   onError,
+  sizes = '100vw',
 }: SmartImageProps) {
   const hostRef = useRef<HTMLSpanElement>(null);
   const [thumbReady, setThumbReady] = useState(false);
@@ -37,6 +40,9 @@ export default function SmartImage({
 
   const thumbSrc = photo.thumb ?? photo.src;
   const fullSrc = photo.full ?? photo.src;
+  // 手机格子只有 180px 宽，让浏览器自己去拿 420 那档就够，不用下 720
+  const srcSet =
+    photo.thumb && photo.thumbSm ? `${photo.thumbSm} 420w, ${photo.thumb} 720w` : undefined;
 
   // 一个实例只负责一张图：换图时调用方用 key 重新挂载（照片墙就是按 src 做 key 的），
   // 省掉一堆「props 变了要重置内部状态」的麻烦
@@ -96,6 +102,8 @@ export default function SmartImage({
       <img
         className="si__img"
         src={thumbSrc}
+        srcSet={srcSet}
+        sizes={srcSet ? sizes : undefined}
         alt={alt ?? photo.caption}
         loading={eager ? 'eager' : 'lazy'}
         decoding="async"

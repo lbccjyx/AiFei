@@ -28,6 +28,8 @@ const MANIFEST = join(root, 'src', 'data', 'photo-manifest.json');
 
 const SOURCE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif']);
 const THUMB_WIDTH = 720;
+/** 手机上格子只有 180px 宽，720 的缩略图等于塞了 4 倍像素，再给一档小的 */
+const THUMB_SMALL_WIDTH = 420;
 const FULL_WIDTH = 1600;
 const BLUR_WIDTH = 24;
 
@@ -52,6 +54,7 @@ async function listSources() {
 
 async function main() {
   await mkdir(join(OUT_DIR, 'thumb'), { recursive: true });
+  await mkdir(join(OUT_DIR, 'thumb-sm'), { recursive: true });
   await mkdir(join(OUT_DIR, 'full'), { recursive: true });
 
   const files = await listSources();
@@ -66,16 +69,25 @@ async function main() {
     const hash = createHash('sha1').update(buffer).digest('hex').slice(0, 10);
 
     const thumbRel = `media/thumb/${name}.${hash}.webp`;
+    const thumbSmRel = `media/thumb-sm/${name}.${hash}.webp`;
     const fullRel = `media/full/${name}.${hash}.webp`;
     const thumbPath = join(root, 'public', thumbRel);
+    const thumbSmPath = join(root, 'public', thumbSmRel);
     const fullPath = join(root, 'public', fullRel);
     keep.add(thumbPath);
+    keep.add(thumbSmPath);
     keep.add(fullPath);
 
     // 同样的图（哈希一样）之前烘过就复用，日常 dev 不用每次等几秒
-    if ((await exists(thumbPath)) && (await exists(fullPath))) {
+    if ((await exists(thumbPath)) && (await exists(thumbSmPath)) && (await exists(fullPath))) {
       reused += 1;
     } else {
+      await sharp(buffer)
+        .rotate()
+        .resize({ width: THUMB_SMALL_WIDTH, withoutEnlargement: true })
+        .webp({ quality: 70, effort: 4 })
+        .toFile(thumbSmPath);
+
       await sharp(buffer)
         .rotate()
         .resize({ width: THUMB_WIDTH, withoutEnlargement: true })
@@ -99,6 +111,7 @@ async function main() {
     bytes += (await stat(fullPath)).size;
 
     manifest[name] = {
+      thumbSm: thumbSmRel,
       thumb: thumbRel,
       full: fullRel,
       blur: `data:image/jpeg;base64,${blur.toString('base64')}`,
@@ -108,7 +121,7 @@ async function main() {
   }
 
   // 删掉改名 / 换图之后留下的旧产物
-  for (const dir of ['thumb', 'full']) {
+  for (const dir of ['thumb', 'thumb-sm', 'full']) {
     for (const entry of await readdir(join(OUT_DIR, dir))) {
       const path = join(OUT_DIR, dir, entry);
       if (!keep.has(path)) await unlink(path);

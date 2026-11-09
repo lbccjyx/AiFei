@@ -16,6 +16,8 @@ import manifestRaw from '../data/photo-manifest.json';
  */
 
 type Derivative = {
+  /** 420px 小缩略图（手机格子用） */
+  thumbSm?: string;
   thumb?: string;
   full?: string;
   blur?: string;
@@ -35,6 +37,8 @@ export type Photo = {
   name: string;
   /** 灯箱 / 悬浮时显示的说明 */
   caption: string;
+  /** 420px 小缩略图 */
+  thumbSm?: string;
   /** 720px 缩略图 */
   thumb?: string;
   /** 1600px 大图 */
@@ -61,12 +65,14 @@ function captionOf(name: string): string {
 
 export const photos: Photo[] = Object.entries(derivatives)
   .map(([name, extra]) => {
+    const thumbSm = asset(extra.thumbSm);
     const thumb = asset(extra.thumb);
     const full = asset(extra.full);
     return {
       name,
       caption: captionOf(name),
       src: full ?? thumb ?? '',
+      thumbSm,
       thumb,
       full,
       blur: extra.blur,
