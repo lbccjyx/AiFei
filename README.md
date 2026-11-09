@@ -88,13 +88,33 @@ export const couple = {
 `src/data/todos.json`：
 
 ```ts
-{ id: 't13', text: '一起去看一次演唱会', category: '旅行' }
+{ id: 'w3', text: '一次拍写真', category: '日常', done: true, doneDate: '2026-11-09' }
 ```
 
 `id` 唯一且别改（勾选状态按 id 记）；`category` 只能是 `旅行 | 美食 | 日常 | 未来`
 （想加分类，改 `src/pages/TodoView.tsx` 顶部的 `CATEGORIES` 和 `src/data/todos.ts` 的类型）。
 
-勾选状态存在浏览器 `localStorage`（键名 `aifei:todos:v1`），换设备 / 清缓存会回到未勾选。
+**完成状态分两层，想长期留下记录就写文件：**
+
+| 在哪点 | 存在哪 | 换设备还在吗 |
+| --- | --- | --- |
+| 网页上点一下 | 浏览器 `localStorage` | ✗ 换手机就没了 |
+| 文件里写 `"done": true` | `todos.json`（跟着 git 走） | ✓ 所有设备都亮着 |
+
+文件里记的完成，清单上会多一个「已记录 · 日期」的小标签。本地点过的那一条以本地为准
+（可以临时取消，但不会改掉文件里的记录）。
+
+不想手写 JSON 就用命令行：
+
+```bash
+npm run todo                     # 看清单（带序号）
+npm run todo -- done 3           # 第 3 条记成完成（也可以写 id，比如 w3）
+npm run todo -- undo 3           # 取消完成
+npm run todo -- add "一起去看海" --cat 旅行
+npm run todo -- rm 3             # 删掉一条
+```
+
+改完跑 `npm run deploy` 才会到线上。
 
 ### 4. 照片
 

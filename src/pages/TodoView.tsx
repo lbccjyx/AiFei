@@ -19,7 +19,7 @@ function CheckMark() {
 }
 
 export default function TodoView() {
-  const { todos: builtTodos, done, toggle, reset, doneCount } = useTodos();
+  const { todos: builtTodos, done, recorded, toggle, reset, doneCount } = useTodos();
   const pending = usePending();
   const startReveal = usePageReveal();
   const [filter, setFilter] = useState<TodoFilter>('全部');
@@ -54,8 +54,8 @@ export default function TodoView() {
         <p className="eyebrow">Bucket list</p>
         <h1 className="page__title">要一起做的事</h1>
         <p className="page__sub">
-          {total} 件小事，勾掉的 {doneCount} 件。勾选只记在这台设备的浏览器里，
-          换个设备就要重新点一遍 —— 站点没有后端，这是它换来的隐私。
+          {total} 件小事，勾掉 {doneCount} 件。点一下先记在这台设备；
+          标「已记录」的是写进仓库的，换台手机也还亮着。
         </p>
       </header>
 
@@ -115,6 +115,11 @@ export default function TodoView() {
                       {isDone ? <CheckMark /> : null}
                     </span>
                     <span className="todo__text">{todo.text}</span>
+                    {recorded[todo.id] && isDone ? (
+                      <span className="todo__record">
+                        {todo.doneDate ? `已记录 · ${todo.doneDate}` : '已记录'}
+                      </span>
+                    ) : null}
                     {pendingTexts.has(todo.text) ? (
                       <span className="todo__pending">待构建</span>
                     ) : null}

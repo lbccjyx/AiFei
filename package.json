@@ -16,6 +16,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "new": "node scripts/new-post.mjs",
+    "todo": "node scripts/todo.mjs",
     "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {
