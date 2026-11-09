@@ -14,7 +14,14 @@ const rawFiles = import.meta.glob('/content/**/*.{md,html}', {
 }) as Record<string, string>;
 
 const assetUrls = import.meta.glob(
-  ['/content/**/*', '!/content/**/*.md', '!/content/**/*.html'],
+  [
+    '/content/**/*',
+    '!/content/**/*.md',
+    '!/content/**/*.html',
+    // 照片有自己的管线（scripts/photos.mjs + photo-manifest.json）：
+    // 别让 Vite 再把 10 MB 原图原样打进 dist，页面根本不下载它们
+    '!/content/photos/**',
+  ],
   {
     eager: true,
     query: '?url',

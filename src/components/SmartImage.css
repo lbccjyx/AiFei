@@ -1,0 +1,63 @@
+/* 三段式图片：模糊占位 → 缩略图 → 大图，叠在一起交叉淡入 */
+
+.si {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--border-soft);
+  margin: 0;
+}
+
+.si__blur,
+.si__img,
+.si__full {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}
+
+/* 24px 的占位被放大到整个框，靠模糊盖住马赛克 */
+.si__blur {
+  filter: blur(18px);
+  transform: scale(1.06);
+  transition: opacity 520ms ease;
+}
+
+.si__img {
+  opacity: 0;
+  transition: opacity 380ms ease;
+}
+
+.si__full {
+  opacity: 0;
+  transition: opacity 520ms ease;
+}
+
+.si[data-thumb='1'] .si__blur {
+  opacity: 0;
+}
+
+.si[data-thumb='1'] .si__img {
+  opacity: 1;
+}
+
+.si[data-full='1'] .si__full {
+  opacity: 1;
+}
+
+/* 缩略图挂了（网络断了 / 文件没了）就留着模糊占位，别留一个空洞 */
+.si[data-broken='1'] .si__img {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .si__blur,
+  .si__img,
+  .si__full {
+    transition: none;
+  }
+}

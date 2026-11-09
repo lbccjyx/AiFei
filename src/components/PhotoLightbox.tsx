@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Photo } from '../lib/photos';
 import './PhotoLightbox.css';
@@ -13,6 +13,10 @@ export type PhotoLightboxProps = {
 /**
  * 照片灯箱：点击大图，Esc 关闭，左右方向键翻页，点背景也能关。
  * 打开时锁住 body 滚动，关闭后恢复。
+ *
+ * 加载上用「缩略图撑框 + 大图淡入」：720px 的缩略图多半已经在照片墙上缓存过，
+ * 先把它铺上去定住尺寸，1600px 的大图到了再原位置淡入 —— 翻页时不会跳、
+ * 也不会先白一下。
  */
 export default function PhotoLightbox({
   photos,
@@ -23,6 +27,13 @@ export default function PhotoLightbox({
   const closeRef = useRef<HTMLButtonElement>(null);
   const photo = photos[index];
   const total = photos.length;
+  const src = photo ? (photo.full ?? photo.src) : '';
+  const thumbSrc = photo ? (photo.thumb ?? photo.src) : '';
+
+  // 记住「哪一张已经加载完」：翻页时 src 一变 loaded 自动回到 false，
+  // 省掉一个专门用来重置的 effect
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const loaded = src !== '' && loadedSrc === src;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -76,7 +87,21 @@ export default function PhotoLightbox({
       </button>
 
       <figure className="lb__stage" onClick={(event) => event.stopPropagation()}>
-        <img key={photo.src} className="lb__img" src={photo.src} alt={photo.caption} />
+        <div
+          className={`lb__frame${loaded ? ' is-loaded' : ''}`}
+          style={photo.blur ? { backgroundImage: `url("${photo.blur}")` } : undefined}
+        >
+          <img className="lb__thumb" src={thumbSrc} alt={photo.caption} decoding="async" />
+          <img
+            key={src}
+            className="lb__img"
+            src={src}
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            onLoad={() => setLoadedSrc(src)}
+          />
+        </div>
         <figcaption className="lb__cap">
           <span className="lb__idx">
             {String(index + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}

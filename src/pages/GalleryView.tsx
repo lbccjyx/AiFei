@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { photos } from '../lib/photos';
 import { mergePhotos, usePending } from '../lib/pending';
+import { prefetchAll } from '../lib/prefetch';
 import PhotoLightbox from '../components/PhotoLightbox';
+import SmartImage from '../components/SmartImage';
 import Reveal from '../components/effects/Reveal';
 import { isPlainClick, usePageReveal } from '../components/page-reveal-context';
 import './GalleryView.css';
@@ -23,13 +25,22 @@ export default function GalleryView() {
   const change = useCallback((index: number) => setOpenIndex(index), []);
   const startReveal = usePageReveal();
 
+  /**
+   * 缩略图铺完之后，大图在后台一张张慢慢拿：进页面 5 秒才开始，每张之间歇 1.1 秒，
+   * 32 张大概 40 秒下完。慢网 / 开了省流量的设备这里直接跳过（见 lib/prefetch）。
+   */
+  useEffect(() => {
+    const urls = all.filter((photo) => !photo.pending).map((photo) => photo.full ?? photo.src);
+    return prefetchAll(urls, { delay: 5000, gap: 1100 });
+  }, [all]);
+
   return (
     <div className="page">
       <header className="page__head">
         <p className="eyebrow">Photos</p>
         <h1 className="page__title">恋爱照片</h1>
         <p className="page__sub">
-          {all.length} 张。灰度待着，鼠标放上去才亮起来；点开可以左右翻。
+          {all.length} 张。先出缩略图，大图在后台慢慢换上来；点开可以左右翻。
         </p>
       </header>
 
@@ -56,12 +67,10 @@ export default function GalleryView() {
                 {photo.pending && broken[photo.src] ? (
                   <span className="ph__waiting">正在发布…</span>
                 ) : (
-                  <img
-                    className="ph__img"
-                    src={photo.src}
+                  <SmartImage
+                    photo={photo}
                     alt={photo.caption}
-                    loading="lazy"
-                    decoding="async"
+                    className="ph__img"
                     onError={() =>
                       setBroken((prev) =>
                         prev[photo.src] ? prev : { ...prev, [photo.src]: true },

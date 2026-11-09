@@ -9,7 +9,10 @@
   },
   "scripts": {
     "dev": "vite",
+    "predev": "npm run photos",
     "build": "tsc -b && vite build",
+    "prebuild": "npm run photos",
+    "photos": "node scripts/photos.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "new": "node scripts/new-post.mjs",
@@ -37,6 +40,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
+    "sharp": "^0.35.5",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.65.0",
     "vite": "^8.2.0"

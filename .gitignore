@@ -34,6 +34,9 @@ dist-ssr
 # 这里显式放行整个照片目录
 !content/photos/**
 
+# 图片衍生物（缩略图 / 大图，由 scripts/photos.mjs 在构建前重新烘）
+public/media/
+
 # 本地临时文件
 *.tmp
 _notes/

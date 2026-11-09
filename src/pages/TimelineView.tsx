@@ -3,7 +3,7 @@ import { timeline, type TimelineItem } from '../data/timeline';
 import { chapterOf } from '../data/chapters';
 import { daysSince } from '../lib/couple';
 import { formatDotDate } from '../lib/format';
-import { findPhoto } from '../lib/photos';
+import { findPhoto, type Photo } from '../lib/photos';
 import { mergeTimeline, usePending } from '../lib/pending';
 import { isPlainClick, usePageReveal } from '../components/page-reveal-context';
 import './TimelineView.css';
@@ -31,7 +31,7 @@ type Node = {
   items: TimelineItem[];
   major: boolean;
   pending: boolean;
-  photo?: { src: string; caption: string };
+  photo?: Photo;
 };
 
 function dayOf(date: string): number {
@@ -362,7 +362,13 @@ export default function TimelineView() {
               <span className="river__count">{entry.node.items.length}</span>
             ) : null}
             {entry.node.photo ? (
-              <img className="river__thumb" src={entry.node.photo.src} alt="" loading="lazy" />
+              <img
+                className="river__thumb"
+                src={entry.node.photo.thumb ?? entry.node.photo.src}
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
             ) : null}
             {labelled[index].showLabel ? (
               <span className="river__label" style={{ top: 13 + labelled[index].row * rowStep }}>
@@ -467,7 +473,15 @@ export default function TimelineView() {
               const photo = item.photo ? findPhoto(item.photo) : undefined;
               return (
                 <article className="river__entry" key={`${item.date}-${item.title}`}>
-                  {photo ? <img className="river__entry-img" src={photo.src} alt={photo.caption} /> : null}
+                  {photo ? (
+                    <img
+                      className="river__entry-img"
+                      src={photo.thumb ?? photo.src}
+                      alt={photo.caption}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : null}
                   <h3 className="river__entry-title">{item.title}</h3>
                   {item.text ? <p className="river__entry-text">{item.text}</p> : null}
                   {item.tag ? <span className="river__entry-tag">{item.tag}</span> : null}

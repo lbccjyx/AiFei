@@ -30,13 +30,40 @@
   margin: 0;
 }
 
-.lb__img {
+/* 缩略图撑出尺寸（多半已经缓存过），大图在原位置淡入 */
+.lb__frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  background-color: #12121a;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  animation: lb-img-in 260ms ease both;
+}
+
+.lb__thumb {
+  display: block;
   max-width: 100%;
   max-height: calc(100svh - 190px);
   border-radius: var(--radius-sm);
   object-fit: contain;
-  background: #12121a;
-  animation: lb-img-in 260ms ease both;
+}
+
+.lb__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.lb__frame.is-loaded .lb__img {
+  opacity: 1;
 }
 
 @keyframes lb-img-in {
@@ -141,14 +168,18 @@
     margin-top: 0;
   }
 
-  .lb__img {
+  .lb__thumb {
     max-height: calc(100svh - 210px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lb,
-  .lb__img {
+  .lb__frame {
     animation: none;
+  }
+
+  .lb__img {
+    transition: none;
   }
 }

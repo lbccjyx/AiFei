@@ -36,11 +36,11 @@
   isolation: isolate;
 }
 
+/* SmartImage 的外层（.si）：铺满整个格子，灰度待着、hover 才亮 */
 .ph__img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   filter: grayscale(1) contrast(1.02);
   transition:
     filter 420ms ease,
