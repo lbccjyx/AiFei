@@ -227,6 +227,8 @@ export default function AdminView() {
   const [editing, setEditing] = useState<number | null>(null);
   /** 正在二次确认删除的那条 */
   const [confirming, setConfirming] = useState<number | null>(null);
+  /** 时间表列表是否展开（默认只显示最近几条） */
+  const [listExpanded, setListExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // 连上之后读一次仓库里的时间表 —— 改 / 删都需要当前 sha，不能只靠打进包里的副本
@@ -275,6 +277,17 @@ export default function AdminView() {
         ),
     [remoteList],
   );
+
+  /**
+   * 时间表越来越长，编辑页整列铺开会把表单挤到很远的地方。
+   * 默认只摊开最近 6 条，想看全部再点「展开」；正在编辑时强制展开，别把上下文藏起来。
+   */
+  const collapsedRows = 6;
+  const listShowsAll = listExpanded || editing !== null;
+  const visibleTimelineRows =
+    listShowsAll || timelineRows.length <= collapsedRows
+      ? timelineRows
+      : timelineRows.slice(-collapsedRows);
 
   const resetForm = () => {
     setEditing(null);
@@ -613,21 +626,35 @@ export default function AdminView() {
                   ? '读取中…'
                   : remoteState === 'error'
                     ? '读取失败'
-                    : `仓库里共 ${remoteList.length} 条`}
+                    : listShowsAll
+                      ? `仓库里共 ${remoteList.length} 条`
+                      : `共 ${remoteList.length} 条，显示最近 ${visibleTimelineRows.length} 条`}
               </span>
-              <button
-                type="button"
-                className="admin-btn admin-btn--sm"
-                onClick={() => void reloadTimeline()}
-                disabled={saving || remoteState === 'loading'}
-              >
-                重新读取
-              </button>
+              <div className="admin-list__tools">
+                {timelineRows.length > collapsedRows ? (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--sm"
+                    onClick={() => setListExpanded((prev) => !prev)}
+                    aria-expanded={listShowsAll}
+                  >
+                    {listShowsAll ? '收起' : `展开全部 ${timelineRows.length} 条`}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--sm"
+                  onClick={() => void reloadTimeline()}
+                  disabled={saving || remoteState === 'loading'}
+                >
+                  重新读取
+                </button>
+              </div>
             </div>
 
             {remoteState === 'ready' ? (
               <ul className="admin-list">
-                {timelineRows.map(({ item, index }) => (
+                {visibleTimelineRows.map(({ item, index }) => (
                   <li
                     className={`admin-list__row${editing === index ? ' is-editing' : ''}`}
                     key={`${item.date}-${item.title}-${index}`}

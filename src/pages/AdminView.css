@@ -375,6 +375,12 @@ select.admin-input {
   flex-wrap: wrap;
 }
 
+.admin-list__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .admin-list {
   list-style: none;
   margin: 4px 0 8px;
