@@ -16,16 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'timeline', label: '时间表' },
   { id: 'todo', label: '待办' },
   { id: 'gallery', label: '照片' },
-  { id: 'diary', label: '日记' },
-  { id: 'about', label: '关于' },
 ];
-
-/** 哪些页算「在日记里」——文章页和标签页都归到日记这条底下 */
-function activeId(pageId: string): string {
-  if (pageId.startsWith('post:')) return pageId.endsWith(':about') ? 'about' : 'diary';
-  if (pageId.startsWith('tag:')) return 'diary';
-  return pageId;
-}
 
 /**
  * 固定顶部导航。滚动后加一层半透明背景，避免文字压在内容上糊成一团。
@@ -35,7 +26,7 @@ export default function NavBar() {
   const { page } = usePageRouter();
   const startReveal = usePageReveal();
   const [scrolled, setScrolled] = useState(false);
-  const current = activeId(page.pageId);
+  const current = page.pageId;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);

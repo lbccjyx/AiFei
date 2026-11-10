@@ -1,6 +1,6 @@
 # AiFei
 
-两个人的记录本。一个纯静态的恋爱小站：**恋爱时间表**、**要一起做的事**、**恋爱照片**，外加一本可以随时写两笔的日记。
+两个人的记录本。一个纯静态的恋爱小站：**恋爱时间表**、**要一起做的事**、**恋爱照片**。
 
 没有后端、没有数据库、不用登录。构建出来就是一袋静态文件，扔到 GitHub Pages 上就能给别人看。
 黑白、克制、首屏是一片会跟随滚动穿过去的粒子云 —— 视觉底子来自 [TnTeQAQ/blog-template](https://github.com/TnTeQAQ/blog-template)。
@@ -11,13 +11,15 @@
 
 | 页面 | 路径 | 内容从哪来 |
 | --- | --- | --- |
-| 首页 | `/` | 粒子首屏 + 三个入口 + 最近日记 + 关于 |
+| 首页 | `/` | 粒子首屏 + 三个入口 + 关于我们 |
 | 时间表 | `/timeline` | `src/data/timeline.json`，一屏可缩放的时间轴 |
-| 待办 | `/todo` | `src/data/todos.json`（勾选存在浏览器本地） |
+| 待办 | `/todo` | `src/data/todos.json`（勾选可写回仓库） |
 | 照片 | `/gallery` | `content/photos/` 里的图片，自动收集 |
-| 日记 | `/diary` | `content/posts/*.md` |
-| 关于 | `/about` | `content/about.md` |
 | 编辑 | `/admin` | 不用改文件：网页上直接传照片、加时间点、加待办 |
+
+> 日记页（`/diary`、`/posts/*`）和关于页（`/about`）已经去掉，旧链接现在落到 404。
+> `content/posts/`、`content/about.md` 这些文件和 markdown 渲染代码还留在仓库里
+> （没被引用、也不进构建产物），以后想恢复随时能接回来。
 
 ## 在网页上编辑（推荐）
 
@@ -160,20 +162,16 @@ content/photos/
 ### 4.1 打包体积上做的两件事
 
 - **three.js 单独一个 chunk**：首页那片粒子云有 517 KB，只对首页 `lazy()` 引入，
-  主包因此从 940 KB 降到 427 KB（gzip 141 KB），时间表 / 照片 / 日记页完全不下载它。
+  主包因此从 940 KB 降到 427 KB（gzip 141 KB），时间表 / 待办 / 照片页完全不下载它。
 - **BGM 延后**：`public/music/yixiaoqingcheng.mp3` 有 2.3 MB，比首屏图片还重。
   现在等 `load` 事件之后再等 1.2 秒才开始探测和播放；省流量 / 2G-3G 设备干脆不自动播，
   点左下角按钮才下。
 
-### 5. 日记
+### 5. 日记（已下线）
 
-```bash
-npm run new -- "标题"                # 生成 content/posts/标题.md 和同名图片文件夹
-npm run new -- "标题" --tags 旅行,日常
-```
-
-然后编辑那个 Markdown 文件。图片放进同名文件夹，正文里写 `./图片名.png` 就能引用。
-也支持 `npm run new -- "标题" --slug my-slug` 指定英文文件名。
+日记页和关于页已经从这个站里去掉了。`content/posts/*.md`、`content/about.md`、
+`npm run new`、markdown 渲染代码都还留在仓库里，但没有任何页面引用它们，
+也不会进构建产物 —— 想恢复的话把 `src/router/pages.tsx` 里的分支接回来就行。
 
 ### 6. 背景音乐
 

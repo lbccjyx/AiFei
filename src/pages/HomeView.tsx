@@ -1,9 +1,7 @@
-import { lazy, Suspense, useMemo, useRef, type MouseEvent } from 'react';
+import { lazy, Suspense, useMemo, useRef } from 'react';
 import { utils } from 'animejs';
-import { getPosts } from '../lib/content';
 import { useParallax, useScrollTransform } from '../lib/motion';
 import { HERO_FLY_RUNWAY_VH } from '../lib/scroll';
-import { isPlainClick, usePageReveal } from '../components/page-reveal-context';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useSnapScroll } from '../hooks/useSnapScroll';
 /**
@@ -12,10 +10,8 @@ import { useSnapScroll } from '../hooks/useSnapScroll';
  * 首屏文字也能先画出来，粒子云晚半拍再补上。
  */
 const ThreeHero = lazy(() => import('../components/ThreeHero'));
-import PostCard from '../components/PostCard';
 import Reveal from '../components/effects/Reveal';
 import Fx from '../components/Fx';
-import FlipIn from '../components/effects/FlipIn';
 import { siteConfig } from '../config';
 import { couple } from '../data/couple';
 import { daysTogether } from '../lib/couple';
@@ -24,9 +20,9 @@ import { todos } from '../data/todos';
 import { photos } from '../lib/photos';
 import './HomeView.css';
 
-// paged-scroll snap points: hero / 三个抽屉 / 日记 / 关于（落点抬高 20px，
+// paged-scroll snap points: hero / 三个抽屉 / 我们（落点抬高 20px，
 // 让标题不要贴着视口顶部）
-const SNAP_OFFSETS = [0, -20, -20, -20];
+const SNAP_OFFSETS = [0, -20, -20];
 
 /** 首页的三个入口卡片，数量从数据里实时算出来 */
 const MODULES = [
@@ -54,14 +50,10 @@ const MODULES = [
 ];
 
 export default function HomeView() {
-  // home teaser: only the most recent posts
-  const posts = getPosts().slice(0, 2);
-  const startReveal = usePageReveal();
   const pinRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   const heroInnerRef = useRef<HTMLDivElement>(null);
   const modulesRef = useRef<HTMLElement>(null);
-  const latestRef = useRef<HTMLElement>(null);
   const aboutRef = useRef<HTMLElement>(null);
   const titleParallaxRef = useRef<HTMLSpanElement>(null);
   const reduced = useReducedMotion();
@@ -72,10 +64,7 @@ export default function HomeView() {
   // paged scrolling: wheel / keyboard move one module at a time. The first
   // snap point is the non-sticky pin wrapper (document top = 0), NOT the
   // sticky hero whose rect moves with the pin — that used to break landing.
-  const snapRefs = useMemo(
-    () => [pinRef, modulesRef, latestRef, aboutRef],
-    [],
-  );
+  const snapRefs = useMemo(() => [pinRef, modulesRef, aboutRef], []);
   useSnapScroll(snapRefs, SNAP_OFFSETS);
 
   // During the pinned fly-through, the hero text fades and lifts out…
@@ -96,12 +85,6 @@ export default function HomeView() {
       utils.set(el, { opacity: 1 - outP });
     },
   });
-
-  const go = (id: string, e: MouseEvent<HTMLElement>) => {
-    if (!isPlainClick(e)) return;
-    e.preventDefault();
-    startReveal(id, e.clientX, e.clientY);
-  };
 
   return (
     <div className="home">
@@ -166,50 +149,12 @@ export default function HomeView() {
         </div>
       </section>
 
-      <section className="home__section" ref={latestRef}>
-        <Reveal>
-          <div className="home__section-head">
-            <h2 className="home__section-title">最近写的</h2>
-            <button
-              type="button"
-              className="home__section-view"
-              onClick={(e) => go('diary', e)}
-            >
-              全部日记 →
-            </button>
-          </div>
-        </Reveal>
-        <div className="home__posts">
-          {posts.map((post, index) => (
-            <FlipIn
-              key={post.slug}
-              side={index === 0 ? 'left' : 'right'}
-              delay={index * 120}
-            >
-              <PostCard post={post} reveal={false} />
-            </FlipIn>
-          ))}
-          {posts.length === 0 ? (
-            <p className="home__empty">还没有日记，去 content/posts/ 里新建一篇。</p>
-          ) : null}
-        </div>
-      </section>
-
       <section className="home__section" ref={aboutRef}>
         <Reveal>
           <h2 className="home__section-title">关于我们</h2>
         </Reveal>
         <Reveal delay={60}>
-          <p className="home__about">
-            {couple.motto}
-            <button
-              type="button"
-              className="home__link"
-              onClick={(e) => go('about', e)}
-            >
-              读全文 →
-            </button>
-          </p>
+          <p className="home__about">{couple.motto}</p>
         </Reveal>
         <Reveal delay={120}>
           <ul className="home__stats">
