@@ -16,14 +16,15 @@ import './TimelineView.css';
  *   L0（zoom < 2.2）  只显示大节点（highlight）的标签
  *   L1（zoom ≥ 2.2）  所有节点的标签都出来
  *   L2                点开某个节点 → 底部抽屉读正文
+ *
+ * 默认视图是「放到最大 + 停在最右边」：打开先看到最近这几天，想看早的就往左拖；
+ * 点「全部」或按 Esc 回到全景。
  */
 const DAY_MS = 86_400_000;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 7;
 const PAD = 88;
 const L1_ZOOM = 2.2;
-/** 两个标签靠太近就藏掉次要的那个（像素） */
-const LABEL_GAP = 96;
 
 type Node = {
   key: string;
@@ -51,8 +52,10 @@ export default function TimelineView() {
   const [width, setWidth] = useState(() =>
     typeof window === 'undefined' ? 1200 : Math.max(320, Math.min(window.innerWidth, 1180) - 48),
   );
-  const [view, setView] = useState({ zoom: 1, pan: 0 });
+  const [view, setView] = useState({ zoom: MAX_ZOOM, pan: 0 });
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  /** 用户自己动过视图之后，就不再自动贴右边缘 */
+  const userMoved = useRef(false);
 
   /** 构建节点：同一天的几条聚合成一个点 */
   const nodes = useMemo<Node[]>(() => {
@@ -90,6 +93,7 @@ export default function TimelineView() {
 
   const zoomAt = useCallback(
     (nextZoom: number, anchorPx: number) => {
+      userMoved.current = true;
       setView((current) => {
         const zoom = clamp(nextZoom, MIN_ZOOM, MAX_ZOOM);
         if (zoom === current.zoom) return current;
@@ -103,6 +107,7 @@ export default function TimelineView() {
 
   const panBy = useCallback(
     (delta: number) => {
+      userMoved.current = true;
       setView((current) => ({ ...current, pan: clampPan(current.pan + delta, current.zoom) }));
     },
     [clampPan],
@@ -111,6 +116,7 @@ export default function TimelineView() {
   /** 相对缩放（按钮/键盘用）：基于当前 zoom 乘一个系数，连点两次才不会互相覆盖 */
   const zoomBy = useCallback(
     (factor: number, anchorPx: number) => {
+      userMoved.current = true;
       setView((current) => {
         const zoom = clamp(current.zoom * factor, MIN_ZOOM, MAX_ZOOM);
         if (zoom === current.zoom) return current;
@@ -122,7 +128,10 @@ export default function TimelineView() {
     [clampPan, pad],
   );
 
-  const reset = useCallback(() => setView({ zoom: 1, pan: 0 }), []);
+  const reset = useCallback(() => {
+    userMoved.current = true;
+    setView({ zoom: 1, pan: 0 });
+  }, []);
 
   /** 滚轮：普通滚轮横向平移，Ctrl/⌘ + 滚轮缩放（React 的 onWheel 是 passive，得自己挂） */
   const latest = useRef({ view, zoomAt, panBy });
@@ -150,13 +159,22 @@ export default function TimelineView() {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
-  /** 容器宽度 */
+  /** 容器宽度。首次量到宽度（以及还没被用户动过时）把视图停在最右边，也就是「今天」 */
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
       const next = entries[0]?.contentRect.width;
-      if (next && next > 0) setWidth(next);
+      if (!next || next <= 0) return;
+      setWidth(next);
+      if (userMoved.current) return;
+      const nextPad = next < 640 ? 36 : PAD;
+      const nextSpan = Math.max(1, next - nextPad * 2);
+      setView((current) => ({
+        ...current,
+        // clampPan 的下限：把整条河的最右端对齐到可视窗口右边
+        pan: Math.min(0, nextSpan - nextSpan * current.zoom),
+      }));
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -175,6 +193,7 @@ export default function TimelineView() {
     if ((event.target as HTMLElement).closest('.river__node, .river__controls, .river__drawer')) {
       return;
     }
+    userMoved.current = true;
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     if (pointers.current.size === 1) {
@@ -247,24 +266,68 @@ export default function TimelineView() {
   });
 
   /**
-   * 标签排几行：桌面 3 行，手机 2 行（屏太窄，再多就会糊成一团）。
-   * 靠太近就换下一行，都放不下才藏 —— 10.05 和 10.06 只差一天，会直接叠在一起。
+   * 标签排版：按标签**实际宽度**占位，分 3 行。
+   *
+   * 以前按固定 96px 间距排，全景下够用；但默认放大到 7 倍之后，相邻两天的
+   * 节点只隔 30px，而一个标题有一两百像素宽，标签就直接叠成一团。
+   * 现在改成「整块放得下才算放得下」，排不下的不显示（点圆点看正文）。
+   *
+   * 另外：视野里**最右边那一条**（默认视图就是最新那条）固定占最后一行，
+   * 免得它被左边的邻居挤掉 —— 一进来最想看的正是它。
    */
   const narrow = width < 520;
-  const rowStep = narrow ? 26 : 30;
-  const labelGap = narrow ? 92 : LABEL_GAP;
-  const rowCursor = Array<number>(narrow ? 2 : 3).fill(-Infinity);
-  const labelled = placed.map((entry) => {
-    const wantLabel = entry.node.major || view.zoom >= L1_ZOOM;
-    if (!wantLabel) return { ...entry, showLabel: false, row: 0 };
-    for (let row = 0; row < rowCursor.length; row++) {
-      if (entry.x - rowCursor[row] >= labelGap) {
-        rowCursor[row] = entry.x;
-        return { ...entry, showLabel: true, row };
+  const fontSize = narrow ? 11 : 12;
+  const rowStep = narrow ? 44 : 44;
+  const rowCount = 3;
+  const rowCursor = Array<number>(rowCount).fill(-Infinity);
+
+  const labelWidthOf = (node: Node) => {
+    const title = node.items[0]?.title ?? '';
+    let units = 0;
+    for (const ch of title) {
+      units += /[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/.test(ch) ? 1 : 0.55;
+    }
+    // 上面一行是日期（10px 等宽数字），下面一行是标题
+    return Math.max(units * fontSize, 10 * 6) + 12;
+  };
+
+  const labelled = placed.map((entry) => ({ ...entry, showLabel: false, row: 0, width: 0 }));
+
+  const placeLabel = (index: number, from: number, to: number) => {
+    const entry = placed[index];
+    if (!(entry.node.major || view.zoom >= L1_ZOOM)) return;
+    const w = labelWidthOf(entry.node);
+    for (let row = from; row < to; row++) {
+      if (entry.x - w / 2 >= rowCursor[row] + 10) {
+        rowCursor[row] = entry.x + w / 2;
+        labelled[index] = { ...entry, showLabel: true, row, width: w };
+        return;
       }
     }
-    return { ...entry, showLabel: false, row: 0 };
+  };
+
+  // 1) 先给「最右边那条看得见的」占住最后一行
+  let rightmostIndex = -1;
+  placed.forEach((entry, index) => {
+    if (entry.x >= 0 && entry.x <= width) rightmostIndex = index;
   });
+  if (rightmostIndex >= 0) placeLabel(rightmostIndex, rowCount - 1, rowCount);
+
+  // 2) 其余的从左到右填前面几行
+  placed.forEach((_, index) => {
+    if (index === rightmostIndex) return;
+    placeLabel(index, 0, rightmostIndex >= 0 ? rowCount - 1 : rowCount);
+  });
+
+  /** 标签以节点为中心，贴到舞台左右边时整体往里挪，别被裁掉 */
+  const labelShift = (x: number, w: number) => {
+    // 视野外的节点不进画面，否则会被「挪进来」跟真正该显示的叠在一起
+    if (x < 0 || x > width) return 0;
+    const margin = 6;
+    if (x - w / 2 < margin) return margin - (x - w / 2);
+    if (x + w / 2 > width - margin) return width - margin - (x + w / 2);
+    return 0;
+  };
 
   /** 篇章带：按月分组 */
   const chaptersPlaced = useMemo(() => {
@@ -286,9 +349,9 @@ export default function TimelineView() {
 
   const active = activeIndex === null ? null : nodes[activeIndex];
 
-  const currentLabel = useMemo(() => {
+  /** 控件上那个「2026 · 11月」：视野中心最近的节点 */
+  const currentLabel = (() => {
     if (!placed.length) return '';
-    // 视野中心对应的节点日期
     const center = pad + view.pan + (span * view.zoom) / 2;
     let nearest = placed[0];
     for (const entry of placed) {
@@ -296,7 +359,7 @@ export default function TimelineView() {
     }
     const [year, month] = nearest.node.date.split('-');
     return `${year} · ${Number(month)}月`;
-  }, [placed, span, pad, view.pan, view.zoom]);
+  })();
 
   /** 迷你进度条：可视窗口在整条河里的比例与位置 */
   const miniLeft = span * view.zoom > 0 ? (-view.pan / (span * view.zoom)) * 100 : 0;
@@ -311,7 +374,7 @@ export default function TimelineView() {
           {nodes.length} 个瞬间
           {nodes.length ? ` · 从 ${formatDotDate(nodes[0].date)} 开始` : ''}
           {nodes.length ? ` · 第 ${daysSince(nodes[0].date)} 天` : ''}
-          ，拖动看全程，双指或 Ctrl+滚轮缩放。
+          ，默认停在最近，往左拖看更早的；双指或 Ctrl+滚轮缩放。
         </p>
       </header>
 
@@ -371,7 +434,14 @@ export default function TimelineView() {
               />
             ) : null}
             {labelled[index].showLabel ? (
-              <span className="river__label" style={{ top: 13 + labelled[index].row * rowStep }}>
+              <span
+                className="river__label"
+                style={{
+                  top: 13 + labelled[index].row * rowStep,
+                  // 贴边的标签往里推一点，别被舞台切掉半个字（最右边那条最容易挨刀）
+                  transform: `translateX(calc(-50% + ${labelShift(entry.x, labelled[index].width)}px))`,
+                }}
+              >
                 <time>{formatDotDate(entry.node.date)}</time>
                 {entry.node.items[0].title}
                 {entry.node.pending ? <em>待构建</em> : null}
@@ -420,7 +490,7 @@ export default function TimelineView() {
 
       <div className="river__foot">
         <span className="river__hint">
-          同一天的几条会合成一个点（角标是条数）· 点圆点、照片或标题都能看正文 · Esc 回到全景
+          同一天的几条会合成一个点（角标是条数）· 点圆点、照片或标题都能看正文 · 点「全部」回到全景
         </span>
         <button
           type="button"
