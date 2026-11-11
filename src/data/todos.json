@@ -7,7 +7,9 @@
   {
     "id": "w2",
     "text": "一起减肥",
-    "category": "日常"
+    "category": "日常",
+    "done": true,
+    "doneDate": "2026-11-11"
   },
   {
     "id": "w3",
