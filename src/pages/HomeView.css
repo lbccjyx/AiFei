@@ -20,15 +20,22 @@
   height: 100svh;
   z-index: 1; /* pinned hero paints above the sections scrolling underneath */
   display: flex;
-  align-items: center;
+  align-items: flex-end;      /* 竖屏：爱心在上，文字落在下半屏 */
   justify-content: center;
   text-align: center;
-  padding: 40px 0;
+  padding: 40px 0 clamp(46px, 9vh, 116px);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home__hero {
     position: relative;
+  }
+}
+
+/* 宽屏：仍然是「爱心在上、文字在下」，只是多留一点呼吸 */
+@media (min-width: 900px) {
+  .home__hero {
+    padding-bottom: clamp(40px, 6vh, 84px);
   }
 }
 

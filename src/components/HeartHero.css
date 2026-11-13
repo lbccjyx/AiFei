@@ -1,0 +1,57 @@
+.heart-hero {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* 和文字一起淡入，别突然蹦出来 */
+  animation: heart-hero-in 1200ms ease-out both;
+}
+
+@keyframes heart-hero-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart-hero {
+    animation: none;
+  }
+}
+
+.heart-hero canvas {
+  display: block;
+}
+
+/* 爱心背后的一层暖光。放在 CSS 里画，才不会被 canvas 边界切出直角 */
+.heart-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    38% 32% at 50% 35%,
+    color-mix(in srgb, #e02842 16%, transparent),
+    transparent 70%
+  );
+}
+
+@media (min-width: 900px) {
+  .heart-hero::before {
+    background: radial-gradient(
+      30% 30% at 50% 42%,
+      color-mix(in srgb, #e02842 16%, transparent),
+      transparent 70%
+    );
+  }
+}
+
+.heart-hero--fallback {
+  background:
+    radial-gradient(circle at 70% 42%, color-mix(in srgb, #e01f3d 22%, transparent), transparent 62%),
+    radial-gradient(circle at 30% 60%, color-mix(in srgb, var(--fg) 7%, transparent), transparent 58%);
+}

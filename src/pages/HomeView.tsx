@@ -5,11 +5,11 @@ import { HERO_FLY_RUNWAY_VH } from '../lib/scroll';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useSnapScroll } from '../hooks/useSnapScroll';
 /**
- * three.js 有 600 KB 左右。它是首屏那片粒子云，只在这个页面出现 ——
+ * three.js 有 600 KB 左右。它是首屏那颗 3D 粒子爱心，只在这个页面出现 ——
  * 拆成单独的 chunk 之后，别的页面（时间表 / 照片 / 日记…）完全不会下载它，
- * 首屏文字也能先画出来，粒子云晚半拍再补上。
+ * 首屏文字也能先画出来，爱心晚半拍再补上。
  */
-const ThreeHero = lazy(() => import('../components/ThreeHero'));
+const HeartHero = lazy(() => import('../components/HeartHero'));
 import Reveal from '../components/effects/Reveal';
 import Fx from '../components/Fx';
 import { siteConfig } from '../config';
@@ -96,8 +96,8 @@ export default function HomeView() {
         style={{ height: `calc(100svh + ${reduced ? 0 : HERO_FLY_RUNWAY_VH}vh)` }}
       >
         <section className="home__hero" ref={heroRef}>
-          <Suspense fallback={<div className="three-hero three-hero--fallback" aria-hidden="true" />}>
-            <ThreeHero />
+          <Suspense fallback={<div className="heart-hero heart-hero--fallback" aria-hidden="true" />}>
+            <HeartHero />
           </Suspense>
           <div className="home__hero-inner" ref={heroInnerRef}>
             <Reveal delay={40}>
