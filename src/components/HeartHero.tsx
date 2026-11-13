@@ -1,4 +1,4 @@
-﻿import { useCallback } from 'react';
+import { useCallback } from 'react';
 import * as THREE from 'three';
 import { useThreeCanvas } from '../lib/three';
 import { getTheme, subscribeTheme } from '../lib/theme';
@@ -353,6 +353,7 @@ export default function HeartHero() {
 
       // 布局：爱心在上、文字在下。大小按 hero 容器的短边走，
       // 这样窄屏（手机）和宽屏（桌面的内容栏）都不会顶到边。
+      let layoutScale = 0.62;
       const layout = () => {
         const aspect = camera.aspect;
         const visibleH = 2 * CAM_Z * Math.tan((FOV * Math.PI) / 360);
@@ -360,6 +361,8 @@ export default function HeartHero() {
         const scale = (factor * Math.min(aspect, 1) * visibleH) / 2.28;
         const frac = aspect > 0.7 ? 0.42 : 0.35;
 
+        // 粒子大小跟着整体缩放走，心放大了点也不至于变稀
+        layoutScale = scale;
         group.scale.setScalar(scale);
         group.position.set(0, (0.5 - frac) * visibleH, 0);
       };
@@ -393,7 +396,7 @@ export default function HeartHero() {
             group.rotation.x = -0.06;
           }
 
-          material.size = 0.034 * (1 + 0.09 * b);
+          material.size = 0.034 * (layoutScale / 0.62) * (1 + 0.09 * b);
 
           if (!reduced && b > 0.5 && lastBeat <= 0.5) {
             beatCount++;
