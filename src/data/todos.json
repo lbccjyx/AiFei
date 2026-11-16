@@ -22,7 +22,9 @@
   {
     "id": "w5",
     "text": "一起骑单车",
-    "category": "旅行"
+    "category": "旅行",
+    "done": true,
+    "doneDate": "2026-11-16"
   },
   {
     "id": "w6",
