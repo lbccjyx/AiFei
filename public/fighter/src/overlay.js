@@ -92,6 +92,31 @@ function init() {
     #fighterHpFill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #57d98a; transition: width .15s linear; }
     #fighterHpText { position: fixed; left: 50%; top: 24px; transform: translateX(-50%); z-index: 22; pointer-events: none;
       color: rgba(233,242,250,.85); font: 10px/1 ui-monospace, monospace; letter-spacing: .08em; }
+    /* 按钮：更实的底色 + 按下反馈 */
+    #root button {
+      background-color: rgba(11,26,51,.78) !important;
+      border-color: rgba(255,255,255,.42) !important;
+      transition: transform .07s ease, background-color .07s ease, box-shadow .12s ease, border-color .07s ease;
+    }
+    #root button.pressed {
+      transform: scale(.93) !important;
+      background-color: rgba(255,255,255,.3) !important;
+      border-color: #fff !important;
+      box-shadow: 0 0 16px rgba(140,210,255,.85);
+    }
+    #fighterFs { position: fixed; left: 12px; bottom: 12px; width: 40px; height: 40px; z-index: 24;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,.45); background: rgba(11,26,51,.7);
+      color: #e9f2fa; font: 18px/1 system-ui, sans-serif; display: flex; align-items: center; justify-content: center;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    #fighterRotate { position: fixed; inset: 0; z-index: 23; display: none; align-items: center; justify-content: center;
+      pointer-events: none; }
+    #fighterRotate span { padding: 10px 16px; border-radius: 999px; background: rgba(11,18,32,.6);
+      color: #e9f2fa; font: 14px/1.4 system-ui, -apple-system, "PingFang SC", sans-serif; letter-spacing: .08em; }
+    #fighterToast { position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%); z-index: 24;
+      padding: 8px 14px; border-radius: 999px; background: rgba(11,18,32,.75); color: #e9f2fa;
+      font: 12px/1.4 system-ui, -apple-system, "PingFang SC", sans-serif; letter-spacing: .06em;
+      opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+    #fighterToast.on { opacity: 1; }
     #fighterMap { position: fixed; left: 12px; top: 58px; width: 92px; height: 92px; z-index: 22;
       border-radius: 6px; border: 1px solid rgba(255,255,255,.22); background: rgba(8,18,32,.42);
       pointer-events: none; image-rendering: pixelated; }
@@ -192,6 +217,69 @@ function init() {
   layer.addEventListener('pointermove', onMove);
   layer.addEventListener('pointerup', onUp);
   layer.addEventListener('pointercancel', onUp);
+
+  // ---------- 按钮按下反馈 ----------
+  const flash = (el, on) => {
+    if (!el) return;
+    el.classList.toggle('pressed', on);
+    if (on && navigator.vibrate) { try { navigator.vibrate(12); } catch { /* 有的浏览器不支持 */ } }
+  };
+  document.addEventListener('pointerdown', (e) => {
+    const b = e.target.closest && e.target.closest('button');
+    if (b && b.id !== 'fighterFs') flash(b, true);
+  }, true);
+  const unflash = (e) => {
+    const b = e.target.closest && e.target.closest('button');
+    if (b) setTimeout(() => flash(b, false), 90);
+  };
+  document.addEventListener('pointerup', unflash, true);
+  document.addEventListener('pointercancel', unflash, true);
+
+  // ---------- 全屏 / 横屏 ----------
+  const toast = document.createElement('div');
+  toast.id = 'fighterToast';
+  document.body.appendChild(toast);
+  const say = (msg) => {
+    toast.textContent = msg;
+    toast.classList.add('on');
+    clearTimeout(say.t);
+    say.t = setTimeout(() => toast.classList.remove('on'), 2600);
+  };
+
+  const fsBtn = document.createElement('button');
+  fsBtn.id = 'fighterFs';
+  fsBtn.type = 'button';
+  fsBtn.title = '全屏';
+  fsBtn.textContent = '⛶';
+  fsBtn.addEventListener('click', async () => {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    try { await req?.call(el); } catch { /* 忽略 */ }
+    try { await screen.orientation?.lock?.('landscape'); } catch { /* iPhone 不支持 */ }
+    if (!document.fullscreenElement) say('当前浏览器不支持网页全屏/强制横屏，请手动把手机横过来');
+  });
+  document.body.appendChild(fsBtn);
+
+  const rot = document.createElement('div');
+  rot.id = 'fighterRotate';
+  rot.innerHTML = '<span>↻ 把手机横过来玩</span>';
+  document.body.appendChild(rot);
+  let rotTimer = 0;
+  const checkOrient = () => {
+    const portrait = window.innerHeight > window.innerWidth;
+    const coarse = window.matchMedia?.('(pointer: coarse)').matches;
+    if (portrait && coarse) {
+      rot.style.display = 'flex';
+      rot.style.opacity = '1';
+      clearTimeout(rotTimer);
+      rotTimer = setTimeout(() => { rot.style.transition = 'opacity .6s ease'; rot.style.opacity = '0'; }, 6000);
+    } else {
+      rot.style.display = 'none';
+    }
+  };
+  checkOrient();
+  window.addEventListener('resize', checkOrient);
+  window.addEventListener('orientationchange', () => setTimeout(checkOrient, 200));
 
   // ---------- 高度条 / 血量条 ----------
   const altBox = document.createElement('div');
