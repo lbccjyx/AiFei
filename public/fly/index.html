@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1220" />
+<meta name="robots" content="noindex" />
+<title>爱菲飞行员 · 老鹰</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1220; }
+  body { font-family: system-ui, -apple-system, "PingFang SC", sans-serif; -webkit-tap-highlight-color: transparent; }
+  #sky { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  .hud { position: fixed; left: max(12px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top));
+    display: flex; flex-direction: column; gap: 4px; pointer-events: none; color: #e9f2fa;
+    padding: 8px 12px; border-radius: 10px; background: rgba(8,18,32,.42); backdrop-filter: blur(2px); }
+  .hud__row { display: flex; align-items: baseline; gap: 8px; font: 11px/1 ui-monospace, monospace; letter-spacing: .08em; }
+  .hud__k { color: rgba(233,242,250,.6); min-width: 34px; }
+  .hud__v { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .wing { position: fixed; left: 50%; top: max(10px, env(safe-area-inset-top)); transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; color: #e9f2fa; }
+  .wing__state { font: 12px/1 ui-monospace, monospace; letter-spacing: .14em; padding: 6px 12px;
+    border-radius: 999px; background: rgba(8,18,32,.5); border: 1px solid rgba(255,255,255,.22); }
+  .wing { padding: 8px 14px 10px; border-radius: 14px; background: rgba(8,18,32,.42); }
+  .wing__bar { width: 132px; height: 7px; border-radius: 4px; border: 1px solid rgba(255,255,255,.35);
+    background: rgba(8,18,32,.5); overflow: hidden; }
+  .wing__fill { height: 100%; width: 100%; background: #5fe08a; transition: width .15s linear, background .2s; }
+
+  #h-therm { position: fixed; left: 50%; top: calc(max(10px, env(safe-area-inset-top)) + 60px);
+    transform: translateX(-50%); margin: 0; font: 11px/1 ui-monospace, monospace; letter-spacing: .1em;
+    color: rgba(233,242,250,.55); pointer-events: none; white-space: nowrap; }
+
+  #h-msg { position: fixed; left: 50%; top: 44%; transform: translate(-50%, -50%); margin: 0;
+    padding: 10px 18px; border-radius: 10px; background: rgba(8,18,32,.72); color: #e9f2fa;
+    font: 13px/1.5 system-ui, -apple-system, "PingFang SC", sans-serif; letter-spacing: .06em;
+    opacity: 0; transition: opacity .3s ease; pointer-events: none; text-align: center; max-width: 80vw; }
+
+  /* 摇杆 */
+  #stickLayer { position: fixed; left: 0; top: 0; width: 52%; height: 100%; z-index: 20; touch-action: none; }
+  #stickBase { position: fixed; width: 116px; height: 116px; margin: -58px 0 0 -58px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.22);
+    background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.06), rgba(6,14,26,.28) 70%);
+    opacity: 0; transition: opacity .12s ease; pointer-events: none; z-index: 21; }
+  #stickBase.on { opacity: 1; }
+  #stickKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px;
+    border-radius: 50%; border: 2px solid rgba(255,255,255,.75);
+    background: radial-gradient(circle at 40% 35%, rgba(255,255,255,.75), rgba(150,185,220,.28) 60%, rgba(20,40,70,.45));
+    box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+
+  /* 按钮 */
+  .btn { position: fixed; z-index: 24; display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,.42); border-radius: 10px; background: rgba(11,26,51,.78);
+    color: #e9f2fa; font: 13px/1 ui-monospace, monospace; letter-spacing: .12em;
+    user-select: none; touch-action: none; transition: transform .07s ease, background .07s ease, box-shadow .12s ease; }
+  .btn[data-pressed="1"] { transform: scale(.93); background: rgba(255,255,255,.3); box-shadow: 0 0 16px rgba(140,210,255,.85); }
+  #btnFlap { right: max(14px, env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); width: 84px; height: 84px; border-radius: 50%; }
+  #btnTuck { right: calc(max(14px, env(safe-area-inset-right)) + 96px); bottom: calc(20px + env(safe-area-inset-bottom)); width: 72px; height: 72px; border-radius: 50%; }
+  .btn small { display: block; margin-top: 3px; font-size: 10px; opacity: .65; letter-spacing: .06em; }
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+
+<div class="hud">
+  <div class="hud__row"><span class="hud__k">高度</span><span class="hud__v" id="h-alt">--</span></div>
+  <div class="hud__row"><span class="hud__k">速度</span><span class="hud__v" id="h-spd">--</span></div>
+  <div class="hud__row"><span class="hud__k">升降</span><span class="hud__v" id="h-vy">--</span></div>
+</div>
+
+<div class="wing">
+  <div class="wing__state" id="h-wing">展翅 · 滑翔</div>
+  <div class="wing__bar"><div class="wing__fill" id="h-sta"></div></div>
+</div>
+
+<p id="h-therm">没有气流 · 在掉高度</p>
+<p id="h-msg"></p>
+
+<div id="stickLayer"></div>
+<div id="stickBase"><div id="stickKnob"></div></div>
+
+<button class="btn" id="btnTuck" type="button">收翅<small>俯冲</small></button>
+<button class="btn" id="btnFlap" type="button">扇翅<small>耗体力</small></button>
+
+<script src="./game.js?v=1"></script>
+</body>
+</html>
