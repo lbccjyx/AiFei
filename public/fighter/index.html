@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0" />
 <meta name="robots" content="noindex" />
 <link rel="icon" href="./favicon.ico" />
-<title>像素飞机 · Pixel Fighter</title>
+<title>鍍忕礌椋炴満 路 Pixel Fighter</title>
 <script type="importmap">{"imports":{"react":"https://esm.sh/react@19.2.8","react/":"https://esm.sh/react@19.2.8/","react-dom":"https://esm.sh/react-dom@19.2.8?external=react","react-dom/":"https://esm.sh/react-dom@19.2.8&external=react/"}}</script>
 <link rel="modulepreload" href="./fragment-host/1/host.js" crossorigin />
 <link rel="modulepreload" href="./src/components/fighter-jet-eject.js" crossorigin />
@@ -34,16 +34,16 @@
 </head>
 <body>
 <div id="root"></div>
-<div id="rotate">↻ 横屏飞得更爽</div>
-<div id="boot">正在装载…</div>
-<script type="module" crossorigin src="./src/main.js?v=5"></script>
-<script defer src="./src/overlay.js?v=5"></script>
+<div id="rotate">鈫?妯睆椋炲緱鏇寸埥</div>
+<div id="boot">姝ｅ湪瑁呰浇鈥?/div>
+<script type="module" crossorigin src="./src/main.js?v=6"></script>
+<script defer src="./src/overlay.js?v=6"></script>
 <script>
-  // 首帧后移除加载提示
-  const t = setInterval(() => {
+  // 棣栧抚鍚庣Щ闄ゅ姞杞芥彁绀?  const t = setInterval(() => {
     if (document.querySelector('#root canvas')) { clearInterval(t); document.getElementById('boot')?.remove(); }
   }, 300);
   setTimeout(() => document.getElementById('boot')?.remove(), 12000);
 </script>
 </body>
 </html>
+

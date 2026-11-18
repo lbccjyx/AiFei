@@ -79,6 +79,9 @@ function init() {
       background: rgba(11,18,32,.45); color: rgba(233,242,250,.85);
       font: 11px/1 system-ui, -apple-system, "PingFang SC", sans-serif; letter-spacing: .08em;
       pointer-events: none; z-index: 21; transition: opacity .3s ease; }
+    #fighterMap { position: fixed; left: 12px; top: 58px; width: 92px; height: 92px; z-index: 22;
+      border-radius: 6px; border: 1px solid rgba(255,255,255,.22); background: rgba(8,18,32,.42);
+      pointer-events: none; image-rendering: pixelated; }
     /* 把左侧的 视角/筋斗 挪到右边，给摇杆让位 */
     .fighter-sidebtn { left: auto !important; }
   `;
@@ -176,6 +179,58 @@ function init() {
   layer.addEventListener('pointermove', onMove);
   layer.addEventListener('pointerup', onUp);
   layer.addEventListener('pointercancel', onUp);
+
+  // ---------- 小地图 ----------
+  const mapCanvas = document.createElement('canvas');
+  mapCanvas.id = 'fighterMap';
+  mapCanvas.width = 128;
+  mapCanvas.height = 128;
+  document.body.appendChild(mapCanvas);
+  const mapCtx = mapCanvas.getContext('2d');
+  let world = null;
+
+  const drawMap = () => {
+    const sc = scene();
+    if (!sc) return;
+    if (!world) world = sc.mapInfo ? sc.mapInfo() : null;
+    if (!world) return;
+    const { size, data, spawnX, spawnY } = world;
+    const r = sc.radar;
+    mapCtx.clearRect(0, 0, 128, 128);
+    mapCtx.fillStyle = 'rgba(30,70,120,.55)';
+    mapCtx.fillRect(0, 0, 128, 128);
+    mapCtx.fillStyle = 'rgba(96,168,96,.85)';
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (data[y * size + x]) mapCtx.fillRect(x, y, 1, 1);
+      }
+    }
+    const px = (v) => ((v % 2048) + 2048) % 2048 / 2048 * 128;
+    // 出生点
+    mapCtx.fillStyle = 'rgba(120,220,255,.95)';
+    mapCtx.fillRect(px(spawnX) - 1.5, px(spawnY) - 1.5, 3, 3);
+    // 敌机
+    if (r?.foes) {
+      mapCtx.fillStyle = 'rgba(255,90,70,.95)';
+      for (const f of r.foes) if (f.state === 0) mapCtx.fillRect(px(f.x) - 1, px(f.y) - 1, 2, 2);
+    }
+    // 自己
+    if (r?.me) {
+      const mx = px(r.me.x), my = px(r.me.y);
+      mapCtx.save();
+      mapCtx.translate(mx, my);
+      mapCtx.rotate(-r.me.yaw + Math.PI / 2);
+      mapCtx.fillStyle = 'rgba(255,255,255,.95)';
+      mapCtx.beginPath();
+      mapCtx.moveTo(0, -4);
+      mapCtx.lineTo(2.6, 3);
+      mapCtx.lineTo(-2.6, 3);
+      mapCtx.closePath();
+      mapCtx.fill();
+      mapCtx.restore();
+    }
+  };
+  setInterval(drawMap, 350);
 
   // ---------- 中文 ----------
   translate();

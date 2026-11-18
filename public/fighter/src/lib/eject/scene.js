@@ -1270,6 +1270,19 @@ export function createScene(initial) {
     updateView()
   }
 
+  /** 给小地图用：128×128 的陆地掩码（1=陆地），以及出生点坐标 */
+  function mapInfo() {
+    const S = 128
+    const step = N / S
+    const out = new Uint8Array(S * S)
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        const h = heightMap[((((y * step) | 0) & NM) << NSHIFT) | (((x * step) | 0) & NM)]
+        out[y * S + x] = h > 0 ? 1 : 0
+      }
+    }
+    return { size: S, data: out, world: N, spawnX, spawnY }
+  }
   function pointerMove(x, y) {
     keyMode = false
     pointerOn = true
@@ -4702,6 +4715,7 @@ export function createScene(initial) {
     resize,
     pointerMove,
     pointerLeave,
+    mapInfo,
     stickMove,
     stickLeave,
     press,
