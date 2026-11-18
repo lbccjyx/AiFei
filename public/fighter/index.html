@@ -50,7 +50,7 @@
     btn.textContent = '重试';
     btn.style.cssText = 'padding:10px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.55);' +
       'background:rgba(255,255,255,.14);color:#e9f2fa;font-size:15px;letter-spacing:.1em';
-    btn.onclick = () => { location.href = location.pathname + '?v=11&r=' + Date.now(); };
+    btn.onclick = () => { location.href = location.pathname + '?v=12&r=' + Date.now(); };
     box.appendChild(btn);
     if (detail) console.warn('fighter: load failed —', detail);
   }
@@ -58,7 +58,7 @@
   async function start() {
     for (let i = 0; i < 3; i++) {
       try {
-        await import('./src/main.js?v=11');
+        await import('./src/main.js?v=12');
         const timer = setInterval(() => {
           if (document.querySelector('#root canvas')) {
             clearInterval(timer);
@@ -75,6 +75,6 @@
   }
   start();
 </script>
-<script defer src="./src/overlay.js?v=11"></script>
+<script defer src="./src/overlay.js?v=12"></script>
 </body>
 </html>
