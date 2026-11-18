@@ -309,13 +309,10 @@
           const wz = cz + Math.sin(ang) * rr;
           const h = ((n * 37 + s.t * 40) % 300) + 4;
           const p = project(wx, h, wz, s, hz, focal, sinY, cosY);
-          if (!p || p.d > 420) continue;
+          if (!p || p.d > 230) continue;
           const px = Math.round(p.x), py = Math.round(p.y);
           if (px < 2 || px > W - 3 || py < 1 || py > H - 2) continue;
-          const c = mix(buf[py * W + px], pack(244, 250, 255), 0.75);
-          buf[py * W + px] = c;
-          buf[py * W + px + 1] = c;
-          buf[(py + 1) * W + px] = c;
+          buf[py * W + px] = mix(buf[py * W + px], pack(244, 250, 255), 0.6);
         }
       }
     }
