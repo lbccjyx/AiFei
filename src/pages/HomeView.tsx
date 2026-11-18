@@ -147,6 +147,22 @@ export default function HomeView() {
             </Reveal>
           ))}
         </div>
+
+        {/* 小游戏：像素风飞行员，独立页面（public/fighter） */}
+        <Reveal delay={240}>
+          <a
+            className="home__pilot"
+            href={`${import.meta.env.BASE_URL}fighter/`}
+            aria-label="爱菲飞行员：像素风飞行小游戏"
+          >
+            <span className="home__pilot-badge">PLAY</span>
+            <span className="home__pilot-title">爱菲飞行员</span>
+            <span className="home__pilot-meta">像素风飞行 · 手机可玩 · 点开就飞</span>
+            <span className="home__pilot-arrow" aria-hidden="true">
+              →
+            </span>
+          </a>
+        </Reveal>
       </section>
 
       <section className="home__section" ref={aboutRef}>
