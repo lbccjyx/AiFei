@@ -43,12 +43,60 @@
     const u = smooth(xf), v = smooth(yf);
     return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
   }
+  // ---------- 「爱菲」地形（和战机版同一张） ----------
+  const GS = 1024;
+  const glyph = (() => {
+    const c = document.createElement('canvas');
+    c.width = GS; c.height = GS;
+    const g = c.getContext('2d');
+    g.fillStyle = '#000';
+    g.fillRect(0, 0, GS, GS);
+    g.fillStyle = '#fff';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = '900 ' + Math.round(GS * 0.38) + 'px "PingFang SC","Microsoft YaHei","Noto Sans SC","Heiti SC",sans-serif';
+    g.fillText('爱菲', GS / 2, GS / 2);
+    const b = document.createElement('canvas');
+    b.width = GS; b.height = GS;
+    const bg = b.getContext('2d');
+    bg.filter = 'blur(24px)';
+    bg.drawImage(c, 0, 0);
+    const d = bg.getImageData(0, 0, GS, GS).data;
+    const out = new Uint8Array(GS * GS);
+    for (let i = 0; i < GS * GS; i++) out[i] = d[i * 4];
+    return out;
+  })();
+
+  // 1 米 ≈ 3.2 个字形像素：一个字约 250 米宽
+  const GSCALE = 1;
+  function glyphAt(x, z) {
+    const ix = ((x * GSCALE) | 0) % GS;
+    const iz = ((z * GSCALE) | 0) % GS;
+    return glyph[((iz + GS) % GS) * GS + ((ix + GS) % GS)] / 255;
+  }
+
+  // 一次性把地形烘成 1024×1024 的高度图（1 格 = 1 米），飞的时候直接查表
+  const MAP = 1024;
+  const MMASK = MAP - 1;
+  const heightMap = new Uint8Array(MAP * MAP);
+  (function bake() {
+    for (let z = 0; z < MAP; z++) {
+      for (let x = 0; x < MAP; x++) {
+        const g = glyph[(z & (GS - 1)) * GS + (x & (GS - 1))] / 255;
+        const n = noise2(x * 0.004, z * 0.004) * 0.55
+          + noise2(x * 0.013, z * 0.013) * 0.3
+          + noise2(x * 0.04, z * 0.04) * 0.15;
+        const e = g * 0.95 + (n - 0.5) * 0.4;
+        const h = (e - 0.42) * 165;
+        heightMap[z * MAP + x] = Math.max(0, Math.min(255, Math.round((h + 20) * 1.45)));
+      }
+    }
+  })();
+
   function terrain(x, z) {
-    // 米：海平面 0，山最高约 300
-    const n = noise2(x * 0.0032, z * 0.0032) * 0.62
-      + noise2(x * 0.0091, z * 0.0091) * 0.26
-      + noise2(x * 0.028, z * 0.028) * 0.12;
-    return (n - 0.46) * 460;
+    const ix = (x | 0) & MMASK;
+    const iz = (z | 0) & MMASK;
+    return heightMap[(iz << 10) | ix] / 1.45 - 20;
   }
 
   // ---------- 热气流 ----------
@@ -76,7 +124,7 @@
   // ---------- 状态 ----------
   const G = 9.8;
   const state = {
-    x: 0, z: 0, alt: 220,
+    x: 0, z: 0, alt: 175,
     yaw: 0, gamma: 0, bank: 0,
     speed: 14, stamina: 100,
     flap: false, tuck: false,
@@ -85,7 +133,7 @@
   const stick = { x: 0, y: 0, active: false };
 
   function reset(msg) {
-    state.x = 0; state.z = 0; state.alt = 260;
+    state.x = 0; state.z = 0; state.alt = 175;
     state.yaw = 0; state.gamma = 0; state.bank = 0;
     state.speed = 15; state.stamina = 100; state.vy = 0;
     state.alive = true;
@@ -154,7 +202,10 @@
     return (255 << 24) | ((b | 0) << 16) | ((g | 0) << 8) | (r | 0);
   }
   function dim(c, k) {
-    const r = (c & 255) * k, g = ((c >> 8) & 255) * k, b = ((c >> 16) & 255) * k;
+    let r = (c & 255) * k, g = ((c >> 8) & 255) * k, b = ((c >> 16) & 255) * k;
+    r = r < 0 ? 0 : r > 255 ? 255 : r;
+    g = g < 0 ? 0 : g > 255 ? 255 : g;
+    b = b < 0 ? 0 : b > 255 ? 255 : b;
     return (255 << 24) | ((b | 0) << 16) | ((g | 0) << 8) | (r | 0);
   }
 
@@ -193,7 +244,7 @@
     const rz = dx * sinY + dz * cosY;
     if (rz < 3) return null;
     const ry = wy - s.alt;
-    const p = s.gamma * 0.55;
+    const p = 0.26 + s.gamma * 0.5;
     const ry2 = ry * Math.cos(p) - rz * Math.sin(p);
     const rz2 = ry * Math.sin(p) + rz * Math.cos(p);
     if (rz2 < 2) return null;
@@ -202,7 +253,8 @@
 
   function render() {
     const s = state;
-    const hz = Math.max(8, Math.min(H - 8, H * 0.46 + Math.sin(s.gamma) * 120 - (s.alt - 160) * 0.05));
+    const camPitch = 0.26 + s.gamma * 0.5;
+    const hz = Math.max(6, Math.min(H - 8, H * 0.5 - Math.tan(camPitch) * focal));
     const sinY = Math.sin(s.yaw), cosY = Math.cos(s.yaw);
     const camAlt = s.alt;
 
@@ -257,7 +309,7 @@
       const dz = cosY * ca - sinY * sa;
       let d = 3;
       let prevTh = 0;
-      while (d < 1500) {
+      while (d < 1000) {
         const wx = s.x + dx * d;
         const wz = s.z + dz * d;
         const th = terrain(wx, wz);
@@ -266,26 +318,36 @@
           const top = Math.max(0, Math.round(sy));
           const bot = Math.round(ybuf[x]);
           if (bot > top) {
+            // 「爱菲」那张地图的分层配色：深海 / 浅海 / 沙滩 / 草（分层）/ 岩石 / 雪
             let col;
-            if (th < -30) col = mix(pack(16, 54, 96), pack(30, 86, 132), Math.min(1, (-th - 30) / 130));
-            else if (th < -3) col = mix(pack(34, 96, 144), pack(70, 148, 182), Math.min(1, (th + 30) / 27));
-            else if (th < 6) col = pack(202, 190, 140);
-            else if (th < 110) col = mix(pack(48, 104, 54), pack(112, 170, 92), (th - 6) / 104);
-            else if (th < 200) col = mix(pack(96, 94, 86), pack(150, 146, 136), (th - 110) / 90);
-            else col = pack(228, 233, 238);
+            if (th < -14) col = pack(22, 62, 108);
+            else if (th < -4) col = pack(34, 92, 140);
+            else if (th < 0) col = pack(52, 118, 158);
+            else if (th < 2.5) col = pack(206, 194, 146);
+            else if (th < 74) {
+              const lv = Math.min(7, Math.floor((th - 2.5) / 9.5));
+              const grass = [pack(52, 116, 58), pack(60, 128, 64), pack(70, 140, 72), pack(80, 150, 80),
+                pack(64, 132, 66), pack(74, 144, 74), pack(86, 156, 84), pack(96, 164, 92)];
+              col = grass[lv];
+            } else if (th < 104) {
+              const lv = Math.min(3, Math.floor((th - 74) / 11));
+              col = [pack(104, 102, 96), pack(118, 116, 108), pack(132, 130, 122), pack(146, 144, 136)][lv];
+            } else {
+              col = pack(232, 236, 240);
+            }
 
             const slope = (th - prevTh) / Math.max(1, d * 0.03);
             let shade = 1 + Math.max(-0.3, Math.min(0.36, slope * 0.11));
-            shade *= 0.9 + hash2(wx * 0.8, wz * 0.8) * 0.2;
+            if (th > 0) shade *= 0.94 + hash2((wx / 26) | 0, (wz / 26) | 0) * 0.12;
             let lit = dim(col, shade);
-            const fog = Math.min(0.5, Math.pow(d / 900, 1.5));
+            const fog = Math.min(0.42, Math.pow(d / 1400, 1.6));
             if (fog > 0.01) lit = mix(lit, pack(176, 206, 228), fog);
             for (let y = top; y < bot; y++) buf[y * W + x] = lit;
           }
           ybuf[x] = top;
         }
         prevTh = th;
-        d *= 1.05;
+        d *= 1.02;
         if (ybuf[x] <= 0) break;
       }
     }
@@ -327,7 +389,7 @@
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(fb, (vw - dw) / 2, (vh - dh) / 2, dw, dh);
 
-    drawEagle(ctx, vw / 2, vh * 0.55, k);
+    drawEagle(ctx, vw / 2, vh * 0.6, k);
   }
 
   // ---------- 老鹰 ----------
@@ -336,97 +398,110 @@
 
   function drawEagle(g, cx, cy, k) {
     const s = state;
-    const size = Math.min(150, 58 + 26 * (k / 2));
+    const size = Math.min(140, 52 + 24 * (k / 2));
     const flap = wingFlapPhase();
     const tuck = wingTuck();
-    const lift = 1 - tuck * 0.82;
 
+    const WING = '#5b3f27';
+    const WING_DARK = '#38251400';
+    const WING_TIP = '#33220f';
     const BODY = '#4a3020';
-    const BODY_LIGHT = '#7a5537';
-    const WING = '#5d4029';
-    const WING_DARK = '#3b2717';
-    const HEAD = '#e8e2d6';
-    const BEAK = '#e5a93c';
+    const CHEST = '#8a6240';
+    const HEAD = '#efe9dd';
+    const BEAK = '#e9ad3e';
 
     g.save();
     g.translate(cx, cy);
     g.rotate(s.bank * 0.5);
-    // 俯仰：机头随爬升角上下
-    g.rotate(-s.gamma * 0.18);
+    g.rotate(-s.gamma * 0.2);
 
-    const wingY = -size * 0.02 + flap * size * 0.16;
-    const lift2 = (0.55 - flap * 0.5) * (1 - tuck * 0.85);
+    const lift = (0.5 - flap * 0.55) * (1 - tuck * 0.9);
+    const wingY = -size * 0.03 + flap * size * 0.12;
 
-    // 尾羽（扇形三片）
-    g.fillStyle = WING_DARK;
-    for (const dx of [-1, 0, 1]) {
+    // ---- 尾羽（扇形，五片）----
+    for (let i = -2; i <= 2; i++) {
+      const a0 = i * 0.17;
+      g.fillStyle = i === 0 ? WING : WING_TIP;
       g.beginPath();
-      g.moveTo(dx * size * 0.03, size * 0.26);
-      g.lineTo(dx * size * 0.13, size * 0.56);
-      g.lineTo(dx * size * 0.13 + size * 0.09, size * 0.5);
+      g.moveTo(i * size * 0.018, size * 0.24);
+      g.lineTo(Math.sin(a0) * size * 0.46, size * 0.55 + Math.cos(a0) * size * 0.08);
+      g.lineTo(Math.sin(a0 + 0.12) * size * 0.40, size * 0.60 + Math.cos(a0) * size * 0.08);
       g.closePath();
       g.fill();
     }
 
-    // 翅膀
+    // ---- 翅膀 ----
     for (const dir of [-1, 1]) {
-      const span = size * (1.05 - 0.62 * tuck);
+      const span = size * (1.02 - 0.58 * tuck);
       const tipX = dir * span;
-      const tipY = wingY - span * 0.30 * lift2;
+      const tipY = wingY - span * 0.26 * lift;
+
+      // 主翼面
       g.fillStyle = WING;
       g.beginPath();
-      g.moveTo(dir * size * 0.07, wingY - size * 0.04);
-      g.quadraticCurveTo(dir * span * 0.42, wingY - size * 0.26 * (0.4 + lift2), tipX, tipY);
-      // 后缘：四段羽毛
-      const feathers = 4;
-      for (let i = feathers; i >= 1; i--) {
-        const f = i / feathers;
-        const bx = dir * span * (0.35 + 0.6 * f);
-        const by = tipY + (wingY - tipY) * (1 - f) * 0.55 + size * 0.10;
-        g.lineTo(bx, by);
-        if (i > 1) g.lineTo(bx - dir * span * 0.06, by - size * 0.05);
-      }
-      g.quadraticCurveTo(dir * span * 0.3, wingY + size * 0.06, dir * size * 0.07, wingY + size * 0.08);
+      g.moveTo(dir * size * 0.05, wingY - size * 0.05);
+      g.quadraticCurveTo(dir * span * 0.45, wingY - size * 0.30 * (0.35 + lift), tipX * 0.92, tipY);
+      g.lineTo(tipX * 0.82, tipY + size * 0.12);
+      g.quadraticCurveTo(dir * span * 0.42, wingY + size * 0.10, dir * size * 0.06, wingY + size * 0.09);
       g.closePath();
       g.fill();
 
-      // 翼尖深色
-      g.fillStyle = WING_DARK;
+      // 翼尖的指状飞羽（展开时才张开）
+      const fingers = 4;
+      for (let i = 0; i < fingers; i++) {
+        const f = i / (fingers - 1);
+        const fx = dir * span * (0.86 + 0.12 * f);
+        const spread = tuck ? 0.04 : 0.10 + f * 0.06;
+        g.fillStyle = WING_TIP;
+        g.beginPath();
+        g.moveTo(fx - dir * size * 0.05, tipY - size * 0.02 + f * size * 0.03);
+        g.lineTo(fx + dir * size * 0.10 * (1 - tuck * 0.8), tipY + size * spread);
+        g.lineTo(fx - dir * size * 0.04, tipY + size * (spread + 0.05));
+        g.closePath();
+        g.fill();
+      }
+
+      // 覆羽阴影
+      g.fillStyle = 'rgba(30,18,8,.28)';
       g.beginPath();
-      g.moveTo(tipX, tipY);
-      g.lineTo(tipX - dir * span * 0.26, tipY + size * 0.10);
-      g.lineTo(tipX - dir * span * 0.10, tipY + size * 0.16);
+      g.moveTo(dir * size * 0.07, wingY + size * 0.02);
+      g.quadraticCurveTo(dir * span * 0.4, wingY + size * 0.02, dir * span * 0.72, tipY + size * 0.08);
+      g.quadraticCurveTo(dir * span * 0.4, wingY + size * 0.12, dir * size * 0.07, wingY + size * 0.09);
       g.closePath();
       g.fill();
     }
 
-    // 身体
+    // ---- 身体 ----
     g.fillStyle = BODY;
     g.beginPath();
-    g.ellipse(0, size * 0.02, size * 0.095, size * 0.30, 0, 0, Math.PI * 2);
+    g.ellipse(0, size * 0.04, size * 0.088, size * 0.30, 0, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = BODY_LIGHT;
+    g.fillStyle = CHEST;
     g.beginPath();
-    g.ellipse(0, size * 0.06, size * 0.055, size * 0.22, 0, 0, Math.PI * 2);
+    g.ellipse(0, size * 0.10, size * 0.048, size * 0.20, 0, 0, Math.PI * 2);
     g.fill();
 
-    // 头
+    // ---- 头 ----
     g.fillStyle = HEAD;
     g.beginPath();
-    g.ellipse(0, -size * 0.30, size * 0.072, size * 0.078, 0, 0, Math.PI * 2);
+    g.ellipse(0, -size * 0.30, size * 0.068, size * 0.075, 0, 0, Math.PI * 2);
     g.fill();
-    // 钩状喙
+    g.fillStyle = '#8a6a3f';
+    g.beginPath();
+    g.ellipse(0, -size * 0.365, size * 0.05, size * 0.03, 0, 0, Math.PI * 2);
+    g.fill();
+    // 喙
     g.fillStyle = BEAK;
     g.beginPath();
-    g.moveTo(size * 0.005, -size * 0.335);
-    g.lineTo(size * 0.075, -size * 0.30);
-    g.quadraticCurveTo(size * 0.045, -size * 0.265, size * 0.005, -size * 0.262);
+    g.moveTo(size * 0.01, -size * 0.335);
+    g.lineTo(size * 0.062, -size * 0.288);
+    g.quadraticCurveTo(size * 0.05, -size * 0.25, size * 0.005, -size * 0.255);
     g.closePath();
     g.fill();
     // 眼
-    g.fillStyle = '#241a12';
+    g.fillStyle = '#1d140c';
     g.beginPath();
-    g.arc(size * 0.028, -size * 0.315, size * 0.014, 0, Math.PI * 2);
+    g.arc(size * 0.026, -size * 0.312, size * 0.013, 0, Math.PI * 2);
     g.fill();
 
     g.restore();
