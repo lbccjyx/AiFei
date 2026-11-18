@@ -3404,8 +3404,7 @@ export function createScene(initial) {
         }
       }
     } else {
-      want = maxRate * (0.62 * Math.sin(time * 0.31 + 1.3) + 0.38 * Math.sin(time * 0.73 + 0.4) + 0.22 * Math.sin(time * 0.17))
-      want = clamp(want, -maxRate, maxRate)
+      want = 0 // 没操作就直飞，不再自动画 S 弯
       if (p.stunts && !drill) {
         autoStunt -= dt
         if (autoStunt <= 0) {
