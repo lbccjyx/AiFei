@@ -36,17 +36,45 @@
 <div id="root"></div>
 <div id="rotate">↻ 横屏飞得更爽</div>
 <div id="boot">正在装载…</div>
-<script type="module" crossorigin src="./src/main.js?v=9"></script>
-<script defer src="./src/overlay.js?v=9"></script>
-<script>
+<script type="module">
   const boot = document.getElementById('boot');
-  const timer = setInterval(() => {
-    if (document.querySelector('#root canvas')) {
-      clearInterval(timer);
-      boot.remove();
+
+  function showRetry(detail) {
+    boot.style.pointerEvents = 'auto';
+    boot.innerHTML = '<div style="text-align:center">' +
+      '<p style="margin:0 0 6px">资源没加载下来</p>' +
+      '<p style="margin:0 0 14px;font-size:12px;opacity:.7">多半是手机网络不稳，或者页面被系统挂起了</p>' +
+      '</div>';
+    const box = boot.querySelector('div');
+    const btn = document.createElement('button');
+    btn.textContent = '重试';
+    btn.style.cssText = 'padding:10px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.55);' +
+      'background:rgba(255,255,255,.14);color:#e9f2fa;font-size:15px;letter-spacing:.1em';
+    btn.onclick = () => { location.href = location.pathname + '?v=10&r=' + Date.now(); };
+    box.appendChild(btn);
+    if (detail) console.warn('fighter: load failed —', detail);
+  }
+
+  async function start() {
+    for (let i = 0; i < 3; i++) {
+      try {
+        await import('./src/main.js?v=10');
+        const timer = setInterval(() => {
+          if (document.querySelector('#root canvas')) {
+            clearInterval(timer);
+            boot.remove();
+          }
+        }, 300);
+        setTimeout(() => { if (document.getElementById('boot')) boot.remove(); }, 12000);
+        return;
+      } catch (err) {
+        if (i === 2) { showRetry(err && err.message); return; }
+        await new Promise((r) => setTimeout(r, 1200));
+      }
     }
-  }, 300);
-  setTimeout(() => boot.remove(), 12000);
+  }
+  start();
 </script>
+<script defer src="./src/overlay.js?v=10"></script>
 </body>
 </html>
