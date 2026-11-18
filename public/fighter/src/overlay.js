@@ -117,6 +117,11 @@ function init() {
       font: 12px/1.4 system-ui, -apple-system, "PingFang SC", sans-serif; letter-spacing: .06em;
       opacity: 0; transition: opacity .2s ease; pointer-events: none; }
     #fighterToast.on { opacity: 1; }
+    #fighterMap { pointer-events: auto; cursor: pointer; }
+    #fighterMapFull { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px; background: rgba(4,10,18,.82); }
+    #fighterMapFull canvas { border-radius: 10px; border: 1px solid rgba(255,255,255,.28); box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+    #fighterMapFull p { margin: 0; color: rgba(233,242,250,.8); font: 12px/1 system-ui, -apple-system, "PingFang SC", sans-serif; letter-spacing: .1em; }
     #fighterMap { position: fixed; left: 12px; top: 58px; width: 92px; height: 92px; z-index: 22;
       border-radius: 6px; border: 1px solid rgba(255,255,255,.22); background: rgba(8,18,32,.42);
       pointer-events: none; image-rendering: pixelated; }
@@ -370,6 +375,45 @@ function init() {
     }
   };
   setInterval(drawMap, 350);
+
+  mapCanvas.addEventListener('click', () => {
+    if (document.getElementById('fighterMapFull')) return;
+    const m = world || (window.__fighterScene && window.__fighterScene.mapInfo && window.__fighterScene.mapInfo());
+    if (!m) return;
+    world = m;
+    const ov = document.createElement('div');
+    ov.id = 'fighterMapFull';
+    const cv = document.createElement('canvas');
+    cv.width = 512;
+    cv.height = 512;
+    cv.style.width = 'min(86vw, 72vh)';
+    cv.style.height = 'min(86vw, 72vh)';
+    cv.style.imageRendering = 'pixelated';
+    const g = cv.getContext('2d');
+    g.fillStyle = '#0a2038';
+    g.fillRect(0, 0, 512, 512);
+    g.fillStyle = '#5fb05f';
+    const k = 512 / m.size;
+    for (let y = 0; y < m.size; y++) {
+      for (let x = 0; x < m.size; x++) {
+        if (m.data[y * m.size + x]) g.fillRect(x * k, y * k, k, k);
+      }
+    }
+    const r = scene()?.radar;
+    if (r?.me) {
+      const px = (((r.me.x % 2048) + 2048) % 2048) / 2048 * 512;
+      const py = (((r.me.y % 2048) + 2048) % 2048) / 2048 * 512;
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(px, py, 7, 0, Math.PI * 2);
+      g.fill();
+    }
+    const tip = document.createElement('p');
+    tip.textContent = '点任意处关闭 · 绿色是陆地';
+    ov.append(cv, tip);
+    ov.addEventListener('click', () => ov.remove());
+    document.body.appendChild(ov);
+  });
 
   // ---------- 中文 ----------
   translate();

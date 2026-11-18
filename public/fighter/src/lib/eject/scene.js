@@ -639,8 +639,59 @@ export function createScene(initial) {
   let spawnX = N / 2
   let spawnY = N / 2
 
+  /** 「爱菲」地形：把这两个字渲染成一张灰度图，模糊后当作高度场混进世界 */
+  function glyphField() {
+    if (typeof document === 'undefined') return null
+    try {
+      const S = 1024
+      const c = document.createElement('canvas')
+      c.width = S
+      c.height = S
+      const g = c.getContext('2d')
+      g.fillStyle = '#000'
+      g.fillRect(0, 0, S, S)
+      g.fillStyle = '#fff'
+      g.textAlign = 'center'
+      g.textBaseline = 'middle'
+      g.font = '900 ' + Math.round(S * 0.38) + 'px "PingFang SC","Microsoft YaHei","Noto Sans SC","Heiti SC",sans-serif'
+      // 2×2 平铺，四个角落各一组「爱菲」
+      g.fillText('爱菲', S / 2, S / 2)
+      const b = document.createElement('canvas')
+      b.width = S
+      b.height = S
+      const bg = b.getContext('2d')
+      bg.filter = 'blur(10px)'
+      bg.drawImage(c, 0, 0)
+      const d = bg.getImageData(0, 0, S, S).data
+      const out = new Float32Array(N * N)
+      const step = S / N
+      for (let y = 0; y < N; y++) {
+        const srow = ((y * step) | 0) * S
+        const row = y << NSHIFT
+        for (let x = 0; x < N; x++) out[row | x] = d[(srow + ((x * step) | 0)) * 4] / 255
+      }
+      return out
+    } catch (e) {
+      return null
+    }
+  }
+
+  function worldSeed() {
+    try {
+      const q = new URLSearchParams(location.search).get('seed')
+      if (q) return q | 0
+      const saved = sessionStorage.getItem('fighterSeed')
+      if (saved) return saved | 0
+      const fresh = (Math.random() * 100000) | 0
+      sessionStorage.setItem('fighterSeed', String(fresh))
+      return fresh
+    } catch (e) {
+      return (Math.random() * 100000) | 0
+    }
+  }
+
   function buildWorld() {
-    const rnd = mulberry32((p.seed | 0) * 7919 + 13)
+    const rnd = mulberry32(worldSeed() * 7919 + 13)
     for (let i = 0; i < nz.length; i++) nz[i] = (rnd() * 256) | 0
 
     const E = new Float32Array(N * N)
@@ -651,11 +702,23 @@ export function createScene(initial) {
     addOctave(E, N, 32, 0.11, rnd)
     addOctave(E, N, 16, 0.05, rnd)
     normalise(E)
+    // 把「爱菲」的轮廓混进高度场：噪声只做细节，字的形状说了算
+    const glyph = glyphField()
+    let glyphShare = 0
+    if (glyph) {
+      let inside = 0
+      for (let o = 0; o < E.length; o++) {
+        E[o] = E[o] * 0.28 + glyph[o] * 0.95
+        if (glyph[o] > 0.5) inside++
+      }
+      normalise(E)
+      glyphShare = inside / E.length
+    }
 
     // sea level from the wanted share of land
     const bins = new Uint32Array(1024)
     for (let o = 0; o < E.length; o++) bins[(E[o] * 1023) | 0]++
-    const land = clamp(p.land, 0.02, 0.9)
+    const land = clamp(glyphShare > 0 ? glyphShare * 1.03 : p.land, 0.02, 0.9)
     let acc = 0
     let sea = 1
     const target = (1 - land) * E.length
