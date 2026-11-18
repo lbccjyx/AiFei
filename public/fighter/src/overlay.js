@@ -98,7 +98,7 @@ function init() {
       border-color: rgba(255,255,255,.42) !important;
       transition: transform .07s ease, background-color .07s ease, box-shadow .12s ease, border-color .07s ease;
     }
-    #root button.pressed {
+    #root button[data-pressed="1"] {
       transform: scale(.93) !important;
       background-color: rgba(255,255,255,.3) !important;
       border-color: #fff !important;
@@ -221,7 +221,9 @@ function init() {
   // ---------- 按钮按下反馈 ----------
   const flash = (el, on) => {
     if (!el) return;
-    el.classList.toggle('pressed', on);
+    // 用 data 属性而不是 class：React 重渲染会重置 className，但不会动 data-*
+    if (on) el.dataset.pressed = '1';
+    else delete el.dataset.pressed;
     if (on && navigator.vibrate) { try { navigator.vibrate(12); } catch { /* 有的浏览器不支持 */ } }
   };
   document.addEventListener('pointerdown', (e) => {
