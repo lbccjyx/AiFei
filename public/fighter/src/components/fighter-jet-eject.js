@@ -2,6 +2,7 @@ import {jsxs as _jsxs, jsx as _jsx, Fragment as _Fragment} from "react/jsx-runti
 // The fighter jet scene with crashes: hold a dive into the ground and the pilot ejects, comes
 // down under a parachute and is picked up by a new jet. It has its own copy of the scene
 // (src/lib/eject/scene.ts), so the original component is untouched by anything done here.
+let lastTapAt = 0 // 上一次轻点的时间（双击才横滚）
 import { createScene, DEFAULT_PARAMS } from '../lib/eject/scene.js'
 
 import { createFlameLayer } from '../lib/flame-layer.js'
@@ -60,7 +61,7 @@ const lessonsFor = (input, o) => {
           ['Change view', 'Space'],
         ]
   const tricks = [
-    ['Roll', pad ? (ps ? '✕' : 'A') : touch ? '轻点屏幕' : '点击'],
+    ['横滚', pad ? (ps ? '✕' : 'A') : touch ? '双击屏幕' : '点击'],
     ['后空翻', '加力 + 满舵拉升，按住'],
     ['前空翻', '加力 + 满舵俯冲，按住（要有高度）'],
     ['Loop, flown for you', pad ? (ps ? 'L1 back · R1 forward' : 'LB back · RB forward') : touch ? '筋斗' : 'F 后翻 · G 前翻'],
@@ -573,8 +574,14 @@ export default function FighterJetEject({ pixelSize = 0, showHint = true, touchC
     const scene = sceneRef.current
     if (!scene) return
     if (tap && !s.moved && performance.now() - s.t < 260) {
-      scene.press()
-      scene.release() // a press and release at once is a click: it rolls
+      const now = performance.now()
+      if (now - lastTapAt < 320) {
+        lastTapAt = 0
+        scene.press()
+        scene.release() // 双击：一次按下+松开 = 横滚
+      } else {
+        lastTapAt = now // 单击只记时间，不横滚
+      }
     }
     scene.pointerLeave()
   }

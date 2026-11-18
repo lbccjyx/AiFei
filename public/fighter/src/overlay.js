@@ -16,6 +16,7 @@ const ZH = {
   ALT: '高度',
   SPD: '速度',
   TAP: '点一下开始',
+  Tap: '双击',
   'Press Space': '按空格',
   FLY: '飞行',
   TRICKS: '特技',
@@ -114,6 +115,7 @@ function init() {
   const R = 56;
   let active = null;
   let homeX = 0, homeY = 0;
+  let tapAt = 0, tapX = 0, tapY = 0, tapMoved = false, lastTap = 0;
 
   const setKnob = (dx, dy) => {
     knob.style.transform = `translate(${dx}px, ${dy}px)`;
@@ -124,6 +126,10 @@ function init() {
     active = e.pointerId;
     homeX = e.clientX;
     homeY = e.clientY;
+    tapAt = Date.now();
+    tapX = e.clientX;
+    tapY = e.clientY;
+    tapMoved = false;
     base.style.left = homeX + 'px';
     base.style.top = homeY + 'px';
     base.classList.add('on');
@@ -139,6 +145,7 @@ function init() {
     let dx = e.clientX - homeX;
     let dy = e.clientY - homeY;
     const len = Math.hypot(dx, dy);
+    if (Math.hypot(e.clientX - tapX, e.clientY - tapY) > 12) tapMoved = true;
     if (len > R) { dx = (dx / len) * R; dy = (dy / len) * R; }
     setKnob(dx, dy);
     // 屏幕 y 向下，飞行 y 向上
@@ -153,6 +160,16 @@ function init() {
     setKnob(0, 0);
     scene()?.stickLeave();
     try { layer.releasePointerCapture(e.pointerId); } catch { /* 已释放 */ }
+    const now = Date.now();
+    if (!tapMoved && now - tapAt < 260) {
+      if (now - lastTap < 320) {
+        lastTap = 0;
+        scene()?.press();
+        scene()?.release(); // 双击横滚
+      } else {
+        lastTap = now; // 单击不横滚
+      }
+    }
   };
 
   layer.addEventListener('pointerdown', onDown);
