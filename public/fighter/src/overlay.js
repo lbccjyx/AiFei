@@ -79,6 +79,19 @@ function init() {
       background: rgba(11,18,32,.45); color: rgba(233,242,250,.85);
       font: 11px/1 system-ui, -apple-system, "PingFang SC", sans-serif; letter-spacing: .08em;
       pointer-events: none; z-index: 21; transition: opacity .3s ease; }
+    #fighterAlt { position: fixed; left: 12px; top: 160px; width: 12px; height: 150px; z-index: 22;
+      border-radius: 3px; border: 1px solid rgba(255,255,255,.28); background: rgba(8,18,32,.45);
+      overflow: hidden; pointer-events: none; }
+    #fighterAltFill { position: absolute; left: 0; right: 0; bottom: 0; height: 0%;
+      background: linear-gradient(180deg, #8fe3ff, #2b8cff); }
+    #fighterAltText { position: fixed; left: 4px; top: 314px; z-index: 22; pointer-events: none;
+      color: rgba(233,242,250,.9); font: 10px/1.2 ui-monospace, monospace; letter-spacing: .06em; }
+    #fighterHp { position: fixed; left: 50%; top: 10px; transform: translateX(-50%); width: 150px; height: 10px;
+      z-index: 22; border-radius: 5px; border: 1px solid rgba(255,255,255,.3); background: rgba(8,18,32,.5);
+      overflow: hidden; pointer-events: none; }
+    #fighterHpFill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #57d98a; transition: width .15s linear; }
+    #fighterHpText { position: fixed; left: 50%; top: 24px; transform: translateX(-50%); z-index: 22; pointer-events: none;
+      color: rgba(233,242,250,.85); font: 10px/1 ui-monospace, monospace; letter-spacing: .08em; }
     #fighterMap { position: fixed; left: 12px; top: 58px; width: 92px; height: 92px; z-index: 22;
       border-radius: 6px; border: 1px solid rgba(255,255,255,.22); background: rgba(8,18,32,.42);
       pointer-events: none; image-rendering: pixelated; }
@@ -179,6 +192,42 @@ function init() {
   layer.addEventListener('pointermove', onMove);
   layer.addEventListener('pointerup', onUp);
   layer.addEventListener('pointercancel', onUp);
+
+  // ---------- 高度条 / 血量条 ----------
+  const altBox = document.createElement('div');
+  altBox.id = 'fighterAlt';
+  const altFill = document.createElement('div');
+  altFill.id = 'fighterAltFill';
+  altBox.appendChild(altFill);
+  const altText = document.createElement('div');
+  altText.id = 'fighterAltText';
+  altText.textContent = '高度 0';
+  const hpBox = document.createElement('div');
+  hpBox.id = 'fighterHp';
+  const hpFill = document.createElement('div');
+  hpFill.id = 'fighterHpFill';
+  hpBox.appendChild(hpFill);
+  const hpText = document.createElement('div');
+  hpText.id = 'fighterHpText';
+  hpText.textContent = '机体';
+  document.body.append(altBox, altText, hpBox, hpText);
+
+  const updateBars = () => {
+    const sc = scene();
+    const me = sc?.radar?.me;
+    if (!me) return;
+    const z = me.z;
+    const top = Math.max(300, z * 1.15);
+    altFill.style.height = Math.max(2, Math.min(100, (z / top) * 100)) + '%';
+    altText.textContent = '高度 ' + Math.round(z);
+    const hull = sc.hull ?? 0;
+    const max = sc.hullMax || 1;
+    const r = Math.max(0, Math.min(1, hull / max));
+    hpFill.style.width = r * 100 + '%';
+    hpFill.style.background = r > 0.6 ? '#57d98a' : r > 0.3 ? '#ffd45c' : '#ff5a47';
+    hpText.textContent = '机体 ' + hull + ' / ' + max;
+  };
+  setInterval(updateBars, 200);
 
   // ---------- 小地图 ----------
   const mapCanvas = document.createElement('canvas');
