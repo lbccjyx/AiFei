@@ -799,6 +799,7 @@ export function createScene(initial) {
   let pointerX = 0
   let pointerY = 0
   let pointerIdle = 99
+  let stickVec = null // 手机摇杆：x 右为正，y 上为正（上=拉升）
   let autoStunt = 6
   let burn = 0 // afterburner, eased in after the intro
   let boost = 0 // 0..1: how hard the thrusters are being pushed (hold)
@@ -1280,6 +1281,17 @@ export function createScene(initial) {
     pointerOn = false
     holding = false
     firing = false
+  }
+  /** 摇杆：x 右为正，y 上为正（上=拉升）。复用指针那套转向，手感按摇杆幅度线性给舵量。 */
+  function stickMove(x, y) {
+    keyMode = false
+    stickVec = { x, y }
+    pointerOn = true
+    pointerIdle = 0
+  }
+  function stickLeave() {
+    stickVec = null
+    pointerOn = false
   }
   function press() {
     holding = true
@@ -3280,6 +3292,14 @@ export function createScene(initial) {
       else diveHold = 0
       commit = diveHold > 0.4
     } else if (steering && (chase || project(lead.x, lead.y, lead.z))) {
+      if (stickVec) {
+        const u = Math.max(-1, Math.min(1, stickVec.y))
+        const sx = Math.max(-1, Math.min(1, stickVec.x))
+        const mag = Math.min(1, Math.abs(u)) * 0.92 + 0.08
+        const raw = u === 0 ? 0 : Math.sign(u * stick) * mag
+        pointerX = vCx + sx * W * 0.26
+        pointerY = raw > 0 ? vSteerY - raw * vSteerY : vSteerY + -raw * (H - vSteerY)
+      }
       const vx = pointerX - prX
       const vy = pointerY - prY
       if (chase) {
@@ -4682,6 +4702,8 @@ export function createScene(initial) {
     resize,
     pointerMove,
     pointerLeave,
+    stickMove,
+    stickLeave,
     press,
     release,
     replayIntro,

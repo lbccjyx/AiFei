@@ -48,10 +48,10 @@ const lessonsFor = (input, o) => {
       ]
     : touch
       ? [
-          ['Turn', 'Drag left or right'],
-          ['Climb / dive', o.stick ? 'Drag down to climb, up to dive' : 'Drag up to climb, down to dive'],
-          ['Thrusters', 'Hold Boost'],
-          ['Change view', 'View'],
+          ['转向', '左右拖动摇杆'],
+          ['拉升 / 俯冲', '摇杆上推拉升，下推俯冲'],
+          ['加力', '按住「加力」'],
+          ['切换视角', '「视角」按钮'],
         ]
       : [
           ['Turn', 'Pointer, or A D / ← →'],
@@ -60,16 +60,16 @@ const lessonsFor = (input, o) => {
           ['Change view', 'Space'],
         ]
   const tricks = [
-    ['Roll', pad ? (ps ? '✕' : 'A') : touch ? 'Tap' : 'Click'],
-    ['Back flip', 'Full climb with thrusters, held'],
-    ['Front flip', 'Full dive with thrusters, held. Needs height.'],
-    ['Loop, flown for you', pad ? (ps ? 'L1 back · R1 forward' : 'LB back · RB forward') : touch ? 'Loop' : 'F back · G forward'],
+    ['Roll', pad ? (ps ? '✕' : 'A') : touch ? '轻点屏幕' : '点击'],
+    ['后空翻', '加力 + 满舵拉升，按住'],
+    ['前空翻', '加力 + 满舵俯冲，按住（要有高度）'],
+    ['Loop, flown for you', pad ? (ps ? 'L1 back · R1 forward' : 'LB back · RB forward') : touch ? '筋斗' : 'F 后翻 · G 前翻'],
   ]
-  if (o.crash) tricks.push(['Eject', 'Hold a dive into the ground, thrusters off'])
+  if (o.crash) tricks.push(['弹射', '收加力，俯冲撞地'])
   const fight = [
-    ['Cannon', pad ? (ps ? 'Hold □' : 'Hold X') : touch ? 'Hold Gun' : 'Hold right mouse'],
-    ['Lock on', 'Keep an enemy ahead until the box turns red'],
-    ['Missile', pad ? (ps ? '○' : 'B') : touch ? 'Missile' : 'M'],
+    ['Cannon', pad ? (ps ? 'Hold □' : 'Hold X') : touch ? '按住「机炮」' : '按住右键'],
+    ['锁定', '敌机保持在正前方，框变红就是锁上了'],
+    ['Missile', pad ? (ps ? '○' : 'B') : touch ? '「导弹」' : 'M'],
   ]
   if (o.hunted) {
     fight.push(['Dodge a missile', 'Roll as the two rings meet'])
@@ -77,7 +77,7 @@ const lessonsFor = (input, o) => {
   }
   if (o.ammo > 0 || o.missiles > 0) {
     const load = [o.ammo > 0 ? `${Math.round(o.ammo)} rounds` : '', o.missiles > 0 ? `${Math.round(o.missiles)} missiles` : ''].filter(Boolean).join(', ')
-    fight.push(['Ammo', `${load}. Run out and it takes ${+o.reload.toFixed(1)} s to reload`])
+    fight.push(['弹药', `${load}。打空后 ${+o.reload.toFixed(1)} 秒装填`])
   }
   const out = [{ title: 'Fly', rows: fly }, { title: 'Tricks', rows: tricks }]
   if (o.armed) out.push({ title: 'Fight', rows: fight })
@@ -220,6 +220,7 @@ export default function FighterJetEject({ pixelSize = 0, showHint = true, touchC
     if (!ctx) return
     const scene = createScene(paramsRef.current)
     sceneRef.current = scene
+    window.__fighterScene = scene // 给手机摇杆图层用
     const noise = createSound()
     noise.setOn(soundPropRef.current)
     noise.setVolume(volumeRef.current)
@@ -863,9 +864,9 @@ export default function FighterJetEject({ pixelSize = 0, showHint = true, touchC
           style: { left: 'max(16px, env(safe-area-inset-left))', top: 'max(16px, env(safe-area-inset-top))', textShadow: '0 1px 0 rgba(0,0,0,.45)' },
           'aria-live': "polite",
  children: [
-          _jsxs('span', { children: ["Kills " , String(kills).padStart(2, '0')]})
+          _jsxs('span', { children: ["击落 " , String(kills).padStart(2, '0')]})
           , hull[0] < hull[1] && (
-            _jsxs('span', { className: "flex items-center gap-[3px]"  , 'aria-label': `Hull ${hull[0]} of ${hull[1]}`, children: [
+            _jsxs('span', { className: "flex items-center gap-[3px]"  , 'aria-label': `机体 ${hull[0]} of ${hull[1]}`, children: [
               _jsx('span', { 'aria-hidden': "true", children: "Hull"})
               , Array.from({ length: hull[1] }, (_, i) => (
                 _jsx('span', {
