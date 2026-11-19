@@ -10,6 +10,7 @@
    releases into normal flow */
 .home__pin {
   position: relative;
+  padding-top: clamp(48px, 7vh, 72px); /* 让开固定导航 */
 }
 
 /* pinned fly-through stage: the hero stays in view while the runway inside
