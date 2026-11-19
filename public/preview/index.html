@@ -64,10 +64,10 @@
   .hero {
     display: grid; justify-items: center; text-align: center;
     max-width: 720px; margin: 0 auto;
-    padding: clamp(20px, 5vh, 56px) 20px clamp(20px, 5vh, 48px);
+    padding: clamp(14px, 3vh, 34px) 20px clamp(14px, 3vh, 30px);
   }
   .heart {
-    width: clamp(168px, 32vh, 300px); height: auto; display: block;
+    width: clamp(150px, 24vh, 250px); height: auto; display: block;
     filter: drop-shadow(0 26px 50px rgba(217,43,58,.10));
     animation: float 9s var(--ease-io) infinite alternate;
   }
@@ -78,7 +78,7 @@
   @media (prefers-reduced-motion: reduce) { .heart { animation: none; } }
   .eyebrow { margin: clamp(14px, 2.6vh, 26px) 0 0; font-size: 11px; letter-spacing: .42em; color: var(--muted); }
   h1 {
-    margin: 10px 0 0; font-size: clamp(32px, 6.2vw, 64px);
+    margin: 10px 0 0; font-size: clamp(30px, 5.4vw, 54px);
     line-height: 1.05; letter-spacing: -0.035em; font-weight: 900;
   }
   .tagline { margin: 14px 0 0; max-width: 26ch; font-size: clamp(13px, 1.5vw, 15px); line-height: 1.8; color: var(--muted); }
@@ -143,7 +143,25 @@
   body.legacy .link::after { transition: none; }
   body.legacy .heart { animation: none; }
 
+
+  /* ====== 旧版布局（复刻线上现状）：大首屏 + 3 卡 + 通栏 ====== */
+  body.legacy .hero { padding-top: 64px; padding-bottom: 64px; }
+  body.legacy .heart { width: clamp(240px, 46vh, 420px); }
+  body.legacy h1 { font-size: clamp(40px, 7.4vw, 76px); }
+  body.legacy .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  body.legacy .card { min-height: 208px; }
+  body.legacy .card--play {
+    grid-column: 1 / -1; min-height: 96px; background: #fff; color: var(--ink); border-color: var(--line);
+  }
+  body.legacy .card--play .no, body.legacy .card--play .desc, body.legacy .card--play .meta { color: var(--muted); }
+  body.legacy .card--play h3 { font-size: 20px; }
   @media (max-width: 719px) {
+    body.legacy .heart { width: 78vw; }
+    body.legacy .grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 719px) {
+    body.legacy .desc { display: block; }
     .desc { display: none; }
     .card { min-height: 0; }
     footer { flex-direction: column; gap: 6px; }
