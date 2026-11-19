@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#ffffff" />
+<title>AiFei · 改版预览</title>
+<style>
+  :root {
+    --ink: #111111;
+    --muted: #6f6f6f;
+    --line: #e3e3e3;
+    --red: #d92b3a;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-io: cubic-bezier(0.77, 0, 0.175, 1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- 对比开关 ---------- */
+  .switch {
+    position: fixed; left: 14px; bottom: 14px; z-index: 50;
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: rgba(255,255,255,.9); backdrop-filter: blur(10px);
+    font-size: 11px; letter-spacing: .08em; color: var(--muted); cursor: pointer;
+    user-select: none;
+  }
+  .switch b { color: var(--ink); font-weight: 700; }
+  .switch:active { transform: scale(0.97); }
+
+  /* ---------- nav ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px clamp(18px, 5vw, 64px);
+    background: rgba(255,255,255,.84);
+    backdrop-filter: blur(14px) saturate(1.15);
+    border-bottom: 1px solid transparent;
+    transition: border-color 180ms var(--ease-out);
+  }
+  .nav.scrolled { border-bottom-color: var(--line); }
+  .brand { font-weight: 900; letter-spacing: -0.02em; font-size: 17px; }
+  .links { display: flex; gap: clamp(14px, 2.6vw, 30px); }
+  .link {
+    position: relative; padding: 5px 1px; text-decoration: none;
+    font-size: 13px; letter-spacing: .05em; color: var(--muted);
+    transition: color 150ms var(--ease-out);
+  }
+  .link::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+    background: var(--ink); transform: scaleX(0); transform-origin: left;
+    transition: transform 220ms var(--ease-out);
+  }
+  .link:hover { color: var(--ink); }
+  .link:hover::after, .link[aria-current] { transform: scaleX(1); }
+  .link[aria-current] { color: var(--ink); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    display: grid; justify-items: center; text-align: center;
+    max-width: 720px; margin: 0 auto;
+    padding: clamp(20px, 5vh, 56px) 20px clamp(20px, 5vh, 48px);
+  }
+  .heart {
+    width: clamp(168px, 32vh, 300px); height: auto; display: block;
+    filter: drop-shadow(0 26px 50px rgba(217,43,58,.10));
+    animation: float 9s var(--ease-io) infinite alternate;
+  }
+  @keyframes float {
+    from { transform: translateY(0) rotate(-0.5deg); }
+    to { transform: translateY(-12px) rotate(0.5deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .heart { animation: none; } }
+  .eyebrow { margin: clamp(14px, 2.6vh, 26px) 0 0; font-size: 11px; letter-spacing: .42em; color: var(--muted); }
+  h1 {
+    margin: 10px 0 0; font-size: clamp(32px, 6.2vw, 64px);
+    line-height: 1.05; letter-spacing: -0.035em; font-weight: 900;
+  }
+  .tagline { margin: 14px 0 0; max-width: 26ch; font-size: clamp(13px, 1.5vw, 15px); line-height: 1.8; color: var(--muted); }
+  .pill {
+    display: inline-flex; align-items: baseline; gap: 6px; margin-top: 20px;
+    padding: 8px 16px; border: 1px solid var(--line); border-radius: 999px;
+    font-size: 12px; letter-spacing: .1em; color: var(--muted);
+  }
+  .pill b { font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .cue { margin-top: clamp(16px, 3vh, 32px); display: flex; flex-direction: column; align-items: center; gap: 8px;
+    font-size: 10px; letter-spacing: .3em; color: #b6b6b6; }
+  .cue i { display: block; width: 1px; height: 26px; background: linear-gradient(var(--line), transparent); }
+
+  /* ---------- section ---------- */
+  .section { max-width: 1160px; margin: 0 auto; padding: clamp(30px, 6vh, 76px) clamp(18px, 5vw, 64px) 30px; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
+  .head h2 { margin: 0; font-size: clamp(17px, 2vw, 21px); letter-spacing: -0.01em; }
+  .head span { font-size: 10px; letter-spacing: .22em; color: #bdbdbd; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 900px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+  .card {
+    position: relative; display: flex; flex-direction: column; gap: 5px;
+    min-height: 196px; padding: 18px 18px 20px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: #fff; color: var(--ink); text-decoration: none;
+    transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out), border-color 220ms var(--ease-out), background 180ms var(--ease-out), color 180ms var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover { transform: translateY(-4px); border-color: #cdcdcd; box-shadow: 0 14px 32px rgba(0,0,0,.09); }
+    .card:hover .arrow { transform: translateX(4px); }
+    .card:hover .no { color: var(--ink); }
+  }
+  .card:active { transform: translateY(-1px) scale(0.986); box-shadow: 0 6px 16px rgba(0,0,0,.07); }
+  .card:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .no { font-size: 11px; letter-spacing: .2em; color: #bdbdbd; font-variant-numeric: tabular-nums; transition: color 160ms var(--ease-out); }
+  .card h3 { margin: 1px 0 0; font-size: 18px; letter-spacing: -0.01em; }
+  .meta { font-size: 11px; letter-spacing: .1em; color: var(--muted); }
+  .desc { margin-top: 9px; font-size: 12.5px; line-height: 1.7; color: var(--muted); }
+  .arrow { position: absolute; right: 16px; bottom: 14px; font-size: 14px; transition: transform 220ms var(--ease-out); }
+
+  .card--play { background: #111; color: #fff; border-color: #111; }
+  .card--play .no, .card--play .desc { color: rgba(255,255,255,.6); }
+  .card--play .meta { color: rgba(255,255,255,.55); }
+
+  footer {
+    max-width: 1160px; margin: 0 auto;
+    padding: 26px clamp(18px, 5vw, 64px) 60px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; gap: 16px;
+    font-size: 11px; letter-spacing: .06em; color: #9c9c9c;
+  }
+
+  /* ====== 旧版行为（对比用）：整块反色、无按压、慢过渡 ====== */
+  body.legacy .card { transition: background 520ms ease, color 520ms ease; }
+  body.legacy .card:hover,
+  body.legacy .card:active { transform: none; box-shadow: none; background: var(--ink); color: #fff; border-color: var(--ink); }
+  body.legacy .card:hover .desc { color: rgba(255,255,255,.85); }
+  body.legacy .card:hover .no { color: #fff; }
+  body.legacy .card--play:hover { background: #111; color: #fff; }
+  body.legacy .link::after { transition: none; }
+  body.legacy .heart { animation: none; }
+
+  @media (max-width: 719px) {
+    .desc { display: none; }
+    .card { min-height: 0; }
+    footer { flex-direction: column; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+<div class="switch" id="sw">对比：<b id="swLabel">新版</b></div>
+
+<nav class="nav" id="nav">
+  <div class="brand">AiFei</div>
+  <div class="links">
+    <a class="link" href="#" aria-current="page">首页</a>
+    <a class="link" href="#">时间表</a>
+    <a class="link" href="#">待办</a>
+    <a class="link" href="#">照片</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <img class="heart" src="./heart.png" alt="" />
+  <p class="eyebrow">AIFEI</p>
+  <h1>巫鸿民 &amp; 黄叶菲</h1>
+  <p class="tagline">把我们的每一天，过成可以翻回去看的样子。</p>
+  <div class="pill">在一起 <b id="days">46</b> 天</div>
+  <div class="cue"><span>SCROLL</span><i></i></div>
+</header>
+
+<section class="section">
+  <div class="head">
+    <h2>我们在这里</h2>
+    <span>04 MODULES</span>
+  </div>
+  <div class="grid">
+    <a class="card" href="#">
+      <span class="no">01</span><h3>时间表</h3><span class="meta">40 个瞬间</span>
+      <p class="desc">第一次见面、第一次看海，按时间摆好的那些日子。</p>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+    <a class="card" href="#">
+      <span class="no">02</span><h3>待办</h3><span class="meta">19 件想做的事</span>
+      <p class="desc">勾掉一件，就多一段以后能讲的事。</p>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+    <a class="card" href="#">
+      <span class="no">03</span><h3>照片</h3><span class="meta">43 张</span>
+      <p class="desc">按下快门的那一秒，其他都变模糊了。</p>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+    <a class="card card--play" href="#">
+      <span class="no">04</span><h3>爱菲飞行员</h3><span class="meta">像素飞行 · 手机可玩</span>
+      <p class="desc">点开就飞，从浪尖一路爬到云上。</p>
+      <span class="arrow" aria-hidden="true">↗</span>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <span>巫鸿民 &amp; 黄叶菲 · AiFei</span>
+  <span>在一起第 <b id="days2">46</b> 天 · 改版预览</span>
+</footer>
+
+<script>
+  // 天数实时算，和主站一致
+  (function () {
+    const start = new Date(2026, 9, 5); // 2026-10-05
+    const today = new Date();
+    const a = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const b = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const n = Math.max(1, Math.round((b - a) / 86400000) + 1);
+    document.getElementById('days').textContent = n;
+    document.getElementById('days2').textContent = n;
+  })();
+
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+  onScroll();
+  addEventListener('scroll', onScroll, { passive: true });
+
+  // 旧版 / 新版 对比
+  const sw = document.getElementById('sw');
+  const label = document.getElementById('swLabel');
+  sw.addEventListener('click', () => {
+    const on = document.body.classList.toggle('legacy');
+    label.textContent = on ? '旧版' : '新版';
+  });
+</script>
+</body>
+</html>
