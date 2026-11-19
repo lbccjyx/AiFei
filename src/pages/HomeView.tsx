@@ -47,6 +47,14 @@ const MODULES = [
     meta: `${photos.length} 张`,
     desc: '按下快门的那一秒，其他都变模糊了。',
   },
+  {
+    id: 'pilot',
+    no: '04',
+    title: '爱菲飞行员',
+    meta: '像素飞行 · 手机可玩',
+    desc: '点开就飞，从浪尖一路爬到云上。',
+    href: `${import.meta.env.BASE_URL}fighter/`,
+  },
 ];
 
 export default function HomeView() {
@@ -93,7 +101,7 @@ export default function HomeView() {
       <div
         className="home__pin"
         ref={pinRef}
-        style={{ height: `calc(100svh + ${reduced ? 0 : HERO_FLY_RUNWAY_VH}vh)` }}
+        style={{ height: HERO_FLY_RUNWAY_VH > 0 ? `calc(100svh + ${reduced ? 0 : HERO_FLY_RUNWAY_VH}vh)` : 'auto' }}
       >
         <section className="home__hero" ref={heroRef}>
           <Suspense fallback={<div className="heart-hero heart-hero--fallback" aria-hidden="true" />}>
@@ -127,42 +135,46 @@ export default function HomeView() {
           <h2 className="home__section-title">我们在这里</h2>
         </Reveal>
         <div className="home__modules">
-          {MODULES.map((module, index) => (
-            <Reveal key={module.id} delay={index * 80}>
-              <Fx
-                as="article"
-                tilt
-                click={module.id}
-                className="home__module"
-                aria-label={`${module.title}：${module.meta}`}
-              >
-                <span className="home__module-no">{module.no}</span>
-                <h3 className="home__module-title">{module.title}</h3>
-                <p className="home__module-meta">{module.meta}</p>
-                <p className="home__module-desc">{module.desc}</p>
-                <span className="home__module-arrow" aria-hidden="true">
-                  →
-                </span>
-              </Fx>
-            </Reveal>
-          ))}
+          {MODULES.map((module, index) =>
+            module.href ? (
+              <Reveal key={module.id} delay={index * 80}>
+                <a
+                  className="home__module home__module--pilot"
+                  href={module.href}
+                  aria-label={`${module.title}：${module.meta}`}
+                >
+                  <span className="home__module-no">{module.no}</span>
+                  <h3 className="home__module-title">{module.title}</h3>
+                  <p className="home__module-meta">{module.meta}</p>
+                  <p className="home__module-desc">{module.desc}</p>
+                  <span className="home__module-arrow" aria-hidden="true">
+                    ↗
+                  </span>
+                </a>
+              </Reveal>
+            ) : (
+              <Reveal key={module.id} delay={index * 80}>
+                <Fx
+                  as="article"
+                  tilt
+                  click={module.id}
+                  className="home__module"
+                  aria-label={`${module.title}：${module.meta}`}
+                >
+                  <span className="home__module-no">{module.no}</span>
+                  <h3 className="home__module-title">{module.title}</h3>
+                  <p className="home__module-meta">{module.meta}</p>
+                  <p className="home__module-desc">{module.desc}</p>
+                  <span className="home__module-arrow" aria-hidden="true">
+                    →
+                  </span>
+                </Fx>
+              </Reveal>
+            ),
+          )}
         </div>
 
-        {/* 小游戏：像素风飞行员，独立页面（public/fighter） */}
-        <Reveal delay={240}>
-          <a
-            className="home__pilot"
-            href={`${import.meta.env.BASE_URL}fighter/`}
-            aria-label="爱菲飞行员：像素风飞行小游戏"
-          >
-            <span className="home__pilot-badge">PLAY</span>
-            <span className="home__pilot-title">爱菲飞行员</span>
-            <span className="home__pilot-meta">像素风飞行 · 手机可玩 · 点开就飞</span>
-            <span className="home__pilot-arrow" aria-hidden="true">
-              →
-            </span>
-          </a>
-        </Reveal>
+
       </section>
 
       <section className="home__section" ref={aboutRef}>

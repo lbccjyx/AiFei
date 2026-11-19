@@ -13,7 +13,7 @@ export type ScrollSnapshot = {
 };
 
 /** Height of the home hero fly-through runway, in viewport-height units. */
-export const HERO_FLY_RUNWAY_VH = 130;
+export const HERO_FLY_RUNWAY_VH = 0;
 
 const snap: ScrollSnapshot = { y: 0, vy: 0 };
 
