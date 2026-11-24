@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0d1b1e" />
+<title>爱菲小农场</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1b1e; }
+  body { font-family: system-ui, -apple-system, "PingFang SC", sans-serif; -webkit-tap-highlight-color: transparent; }
+  #farm { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; image-rendering: pixelated; }
+
+  .hud { position: fixed; left: max(12px, env(safe-area-inset-left)); top: max(10px, env(safe-area-inset-top));
+    display: flex; gap: 14px; align-items: center; padding: 8px 14px; border-radius: 12px;
+    background: rgba(8,18,24,.5); backdrop-filter: blur(8px); color: #e8f1ee;
+    font: 12px/1 ui-monospace, monospace; letter-spacing: .08em; pointer-events: none; }
+  .hud b { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .hud i { font-style: normal; opacity: .55; }
+
+  .shop { position: fixed; right: max(12px, env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom));
+    display: flex; gap: 10px; z-index: 20; }
+  .seed {
+    width: 74px; height: 64px; border-radius: 12px; border: 1px solid rgba(255,255,255,.28);
+    background: rgba(10,24,28,.72); color: #e8f1ee; font: 11px/1.3 ui-monospace, monospace;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    transition: transform .07s ease, background .07s ease, box-shadow .12s ease;
+  }
+  .seed:active, .seed[data-pressed="1"] { transform: scale(.94); background: rgba(255,255,255,.26); box-shadow: 0 0 14px rgba(150,220,180,.6); }
+  .seed em { font-style: normal; font-size: 17px; }
+  .seed s { text-decoration: none; opacity: .7; }
+
+  #tip { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    padding: 7px 14px; border-radius: 999px; background: rgba(8,18,24,.6); color: #cfe3dc;
+    font: 11px/1.4 ui-monospace, monospace; letter-spacing: .08em; white-space: nowrap;
+    opacity: 0; transition: opacity .25s ease; pointer-events: none; }
+  #tip.on { opacity: 1; }
+</style>
+</head>
+<body>
+<canvas id="farm"></canvas>
+
+<div class="hud">
+  <span><i>金币</i> <b id="h-coin">0</b></span>
+  <span><i>第</i> <b id="h-day">1</b> <i>天</i></span>
+  <span><i>种子</i> <b id="h-seed">0</b></span>
+  <span><i>风</i> <b id="h-wind">1</b></span>
+</div>
+
+<div class="shop">
+  <button class="seed" id="buy-wheat"><em>🌾</em>麦种 <s>5</s></button>
+  <button class="seed" id="buy-carrot"><em>🥕</em>萝卜 <s>8</s></button>
+</div>
+
+<div id="tip"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- 画布 ----------
+  const cv = document.getElementById('farm');
+  const ctx = cv.getContext('2d');
+  let W = 320, H = 180;
+  let scale = 1, offX = 0, offY = 0, dprNow = 1;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dprNow = dpr;
+    const cssW = window.innerWidth, cssH = window.innerHeight;
+    cv.width = Math.round(cssW * dpr);
+    cv.height = Math.round(cssH * dpr);
+    // 竖屏换成高画布，横屏保持宽画布
+    if (cssH > cssW) { W = 200; H = 340; } else { W = 320; H = 180; }
+    layout();
+    scale = Math.max(cssW / W, cssH / H);
+    offX = (cssW - W * scale) / 2;
+    offY = (cssH - H * scale) / 2;
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- 存档 ----------
+  const KEY = 'aifei:farm:v1';
+  const state = {
+    coins: 24,
+    day: 1,
+    seeds: { wheat: 3, carrot: 1 },
+    plots: [],
+    t: 0,
+    dayT: 0,
+  };
+  const PLOT_N = 6;
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      Object.assign(state, d);
+      if (!Array.isArray(state.plots) || state.plots.length !== PLOT_N) state.plots = defaultPlots();
+    } catch { /* 存档坏了就从新开始 */ }
+  }
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ coins: state.coins, day: state.day, seeds: state.seeds, plots: state.plots }));
+    } catch { /* 隐私模式可能不给写 */ }
+  }
+  const defaultPlots = () => Array.from({ length: PLOT_N }, () => ({ crop: null, stage: 0, wet: 0, grow: 0 }));
+
+  // ---------- 风 ----------
+  let wind = 0.6;
+  let gust = 0;
+  function updateWind(dt) {
+    const t = state.t;
+    wind = 0.55 + 0.35 * Math.sin(t * 0.31) + 0.22 * Math.sin(t * 0.73 + 1.7) + 0.12 * Math.sin(t * 1.9);
+    gust = Math.max(0, wind - 0.75) * 2.4;   // 阵风强度
+  }
+
+  // ---------- 布局：随屏幕方向算 ----------
+  let groundY = 126, fgY = 158;
+  let trees = [];
+  let plotW = 34, plotH = 16, plotGap = 4, plotsX0 = 0, plotsY = 146;
+
+  function layout() {
+    groundY = Math.round(H * 0.70);
+    fgY = Math.round(H * 0.87);
+    plotGap = 4;
+    plotW = Math.max(20, Math.min(34, Math.floor((W - 26) / PLOT_N) - plotGap));
+    plotH = Math.max(12, Math.round(plotW * 0.46));
+    plotsX0 = Math.round((W - (PLOT_N * (plotW + plotGap) - plotGap)) / 2);
+    plotsY = Math.round(H * 0.79);
+
+    trees = W < 260
+      ? [
+          { x: Math.round(W * 0.14), y: groundY + 2, s: 1.0, phase: 0.2 },
+          { x: Math.round(W * 0.86), y: groundY + 6, s: 0.86, phase: 2.4 },
+        ]
+      : [
+          { x: 34, y: groundY - 8, s: 0.72, phase: 0.0 },
+          { x: 96, y: groundY - 2, s: 1.0, phase: 1.3 },
+          { x: W - 70, y: groundY - 6, s: 0.86, phase: 2.1 },
+          { x: W - 28, y: groundY + 2, s: 0.62, phase: 3.4 },
+        ];
+  }
+  const LEAF_COLORS = ['#4f8f4a', '#5da356', '#3f7a3f', '#79b667', '#a8c96a', '#c9b45a'];
+
+  const leaves = [];
+  const MAX_LEAVES = 160;
+
+  function spawnLeaf(x, y, spread) {
+    if (leaves.length >= MAX_LEAVES) return;
+    const l = {
+      x: x + (Math.random() - 0.5) * spread,
+      y: y + (Math.random() - 0.5) * spread * 0.5,
+      vx: 0, vy: 0,
+      size: Math.random() < 0.3 ? 2 : 1,
+      spin: (Math.random() - 0.5) * 6,
+      rot: Math.random() * Math.PI,
+      color: LEAF_COLORS[(Math.random() * LEAF_COLORS.length) | 0],
+      life: 6 + Math.random() * 5,
+      t: 0,
+    };
+    leaves.push(l);
+  }
+
+  function updateLeaves(dt) {
+    const w = wind;
+    for (let i = leaves.length - 1; i >= 0; i--) {
+      const l = leaves[i];
+      l.t += dt;
+      l.vx += (w * 26 - l.vx) * dt * 1.4 + Math.sin(l.t * 5 + l.rot) * 12 * dt;
+      l.vy += (9 - l.vy) * dt * 0.6;            // 慢慢下落
+      l.rot += l.spin * dt * (0.4 + w);
+      l.x += l.vx * dt;
+      l.y += l.vy * dt;
+      if (l.y > groundY + 26 || l.t > l.life || l.x < -10 || l.x > W + 10) leaves.splice(i, 1);
+    }
+  }
+
+  // 叶子从树冠随机位置脱落
+  let leafTimer = 0;
+  function emitLeaves(dt) {
+    leafTimer -= dt;
+    if (leafTimer > 0) return;
+    leafTimer = 0.05 + Math.random() * 0.10;
+    if (Math.random() > 0.55 + wind * 0.45) return;
+    const tr = trees[(Math.random() * trees.length) | 0];
+    const cx = tr.x + (Math.random() - 0.5) * 46 * tr.s;
+    const cy = tr.y - 34 * tr.s + (Math.random() - 0.5) * 26 * tr.s;
+    spawnLeaf(cx, cy, 6);
+    if (gust > 0.25 && Math.random() < 0.6) spawnLeaf(cx, cy, 18);
+  }
+
+  // ---------- 像素画工具 ----------
+  const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+
+  function drawSky() {
+    const g = ctx.createLinearGradient(0, 0, 0, groundY);
+    g.addColorStop(0, '#0f2a33');
+    g.addColorStop(0.45, '#1d4b52');
+    g.addColorStop(0.75, '#31706a');
+    g.addColorStop(1, '#5b9a80');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, groundY);
+
+    // 远处山
+    ctx.fillStyle = '#2c5d5a';
+    for (let i = 0; i < 5; i++) {
+      const bx = i * (W / 4) - 20, bh = (H > 240 ? 40 : 24) + ((i * 37) % 18);
+      ctx.beginPath();
+      ctx.moveTo(bx, groundY);
+      ctx.lineTo(bx + 44, groundY - bh);
+      ctx.lineTo(bx + 92, groundY);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // 太阳
+    const gx = Math.round(W * 0.76), gy = Math.round(groundY * 0.32);
+    for (let r = 16; r > 0; r--) {
+      ctx.globalAlpha = 0.05 + (16 - r) * 0.01;
+      ctx.fillStyle = '#ffe9a8';
+      ctx.beginPath(); ctx.arc(gx, gy, r, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff6d0';
+    ctx.beginPath(); ctx.arc(gx, gy, 6, 0, 7); ctx.fill();
+  }
+
+  function drawGround() {
+    px(0, groundY, W, H - groundY, '#2f5d3a');
+    // 草皮纹理
+    for (let i = 0; i < 260; i++) {
+      const x = (i * 71 + (i * i) % 37) % W;
+      const y = groundY + 1 + ((i * 29) % Math.max(10, H - groundY - 6));
+      const c = i % 3 === 0 ? '#376b42' : i % 3 === 1 ? '#295233' : '#4b8451';
+      px(x, y, 1, 2, c);
+    }
+    // 前景暗一点，压出层次
+    px(0, fgY, W, H - fgY, '#24492f');
+    for (let i = 0; i < 90; i++) {
+      const x = (i * 53) % W;
+      px(x, fgY + 1 + ((i * 17) % Math.max(4, H - fgY - 4)), 1, 2, '#2d5740');
+    }
+  }
+
+  function drawTree(tr) {
+    const s = tr.s;
+    const sway = wind * 3.0;
+    const baseX = tr.x, baseY = tr.y;
+
+    // 树干 + 一点枝杈
+    const trunkW = Math.max(2, Math.round(4 * s));
+    const trunkH = Math.round(28 * s);
+    px(baseX - trunkW / 2, baseY - trunkH, trunkW, trunkH, '#4a3520');
+    px(baseX - trunkW / 2, baseY - trunkH, 1, trunkH, '#63482c');
+    px(baseX + 1, baseY - trunkH * 0.8, Math.max(1, trunkW * 0.6), 2, '#4a3520');
+
+    // 树冠：几团像素簇拼起来，比同心圆更像树
+    const R = Math.round(30 * s);
+    const cx = baseX + sway * Math.sin(state.t * 1.05 + tr.phase) * s;
+    const cy = baseY - trunkH - R * 0.55;
+
+    const blobs = [
+      { dx: 0, dy: 0, r: R * 0.78, c: '#2f6b3a' },
+      { dx: -R * 0.55, dy: R * 0.10, r: R * 0.52, c: '#356f3d' },
+      { dx: R * 0.52, dy: R * 0.06, r: R * 0.55, c: '#336d3c' },
+      { dx: -R * 0.18, dy: -R * 0.48, r: R * 0.55, c: '#3f8547' },
+      { dx: R * 0.22, dy: -R * 0.44, r: R * 0.48, c: '#468f4c' },
+      { dx: -R * 0.42, dy: -R * 0.20, r: R * 0.40, c: '#478f4b' },
+    ];
+
+    for (const b of blobs) {
+      const bx = cx + b.dx + sway * 1.2 * ((b.dy) / R);
+      const by = cy + b.dy;
+      const r = b.r;
+      for (let y = -r; y <= r; y += 1) {
+        const half = Math.sqrt(Math.max(0, r * r - y * y));
+        for (let x = -half; x <= half; x += 2) {
+          if (Math.random() < 0.015) continue;  // 一点点镂空，别太实
+          px(bx + x, by + y, 2, 1, b.c);
+        }
+      }
+    }
+
+    // 高光与边缘亮点
+    for (let i = 0; i < 10; i++) {
+      const a = i * 2.1 + tr.phase;
+      px(cx + Math.cos(a) * R * 0.85, cy + Math.sin(a) * R * 0.5, 1, 1, i % 3 ? '#7cc468' : '#a3d47a');
+    }
+    // 底部阴影
+    px(cx - R * 0.5, cy + R * 0.62, R, 2, '#275c33');
+  }
+
+  // ---------- 云 ----------
+  const clouds = [
+    { x: 40, y: 34, s: 1.0, sp: 0.8 },
+    { x: 150, y: 22, s: 0.7, sp: 1.2 },
+    { x: 240, y: 44, s: 0.9, sp: 0.6 },
+  ];
+  function drawClouds(dt) {
+    for (const c of clouds) {
+      c.x += wind * c.sp * dt * 6;
+      if (c.x > W + 50) c.x = -50;
+      const y = c.y + Math.sin(state.t * 0.6 + c.x) * 2;
+      ctx.globalAlpha = 0.22;
+      for (let i = 0; i < 4; i++) {
+        const r = (10 + i * 4) * c.s;
+        px(c.x + i * 7 * c.s - r / 2, y - r / 3, r, r * 0.6, '#dff2ec');
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- 田地 ----------
+  const crops = {
+    wheat: { name: '麦子', color: '#d8c46a', height: 14, value: 9, grow: 9 },
+    carrot: { name: '萝卜', color: '#e07a4a', height: 10, value: 15, grow: 14 },
+  };
+
+  function plotRect(i) {
+    return { x: plotsX0 + i * (plotW + plotGap), y: plotsY, w: plotW, h: plotH };
+  }
+
+  function drawPlots() {
+    for (let i = 0; i < PLOT_N; i++) {
+      const r = plotRect(i);
+      const p = state.plots[i];
+      // 土
+      px(r.x, r.y, r.w, r.h, p.wet > 0 ? '#4a3322' : '#5b4230');
+      px(r.x, r.y, r.w, 2, '#6b5138');
+      for (let k = 0; k < 5; k++) px(r.x + 3 + k * 7, r.y + 5 + (k % 2) * 4, 2, 1, '#412d1f');
+      if (!p.crop) continue;
+
+      const c = crops[p.crop];
+      const h = Math.round((c.height * (0.35 + p.stage * 0.22)));
+      const cx = r.x + r.w / 2;
+      const by = r.y + 2;
+
+      if (p.crop === 'wheat') {
+        for (let k = -3; k <= 3; k++) {
+          const sway = Math.sin(state.t * 2.4 + k * 0.7) * (1 + wind * 2.4);
+          const hh = h * (0.8 + ((k + 3) % 2) * 0.15);
+          px(cx + k * 3 + sway, by - hh + 2, 1, hh, '#b7a95a');
+          // 麦穗
+          px(cx + k * 3 + sway - 0.5, by - hh, 3, 3, p.stage >= 3 ? '#f2d281' : '#a8bd5e');
+          if (p.stage >= 3) px(cx + k * 3 + sway, by - hh - 1, 2, 1, '#ffe9a8');
+        }
+      } else {
+        // 萝卜：叶子
+        for (let k = -1; k <= 1; k++) {
+          const sway = Math.sin(state.t * 2.6 + k) * (1 + wind * 2);
+          px(cx + k * 3 + sway, by - h, 2, h * 0.7, '#5aa04e');
+        }
+        if (p.stage >= 3) px(cx - 2, by - 3, 5, 4, '#e07a4a');
+      }
+      // 成熟提示
+      if (p.stage >= 3) {
+        const bob = Math.sin(state.t * 4) * 1.5;
+        px(cx - 1, by - h - 8 + bob, 2, 4, '#ffe9a0');
+      }
+    }
+  }
+
+  // ---------- 交互 ----------
+  let tipTimer = 0;
+  const tipEl = document.getElementById('tip');
+  function say(msg) {
+    tipEl.textContent = msg;
+    tipEl.classList.add('on');
+    tipTimer = 2;
+  }
+
+  function toWorld(clientX, clientY) {
+    const rect = cv.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left - offX) / scale,
+      y: (clientY - rect.top - offY) / scale,
+    };
+  }
+
+  function tapAt(wx, wy) {
+    for (let i = 0; i < PLOT_N; i++) {
+      const r = plotRect(i);
+      if (wx >= r.x - 2 && wx <= r.x + r.w + 2 && wy >= r.y - 16 && wy <= r.y + r.h + 6) {
+        act(i);
+        return;
+      }
+    }
+  }
+
+  function act(i) {
+    const p = state.plots[i];
+    if (!p.crop) {
+      const seed = state.seeds.wheat > 0 ? 'wheat' : state.seeds.carrot > 0 ? 'carrot' : null;
+      if (!seed) { say('没有种子了，去右边买一点'); return; }
+      state.seeds[seed]--;
+      p.crop = seed;
+      p.stage = 0;
+      p.wet = 0;
+      p.grow = 0;
+      say(`种下了${crops[seed].name}`);
+    } else if (p.stage >= 3) {
+      const c = crops[p.crop];
+      state.coins += c.value;
+      say(`收获${c.name} +${c.value} 金币`);
+      p.crop = null; p.stage = 0; p.wet = 0; p.grow = 0;
+    } else if (p.wet <= 0) {
+      p.wet = 12;
+      say('浇水了，等它长');
+    } else {
+      say('正在长，别急');
+    }
+    save();
+  }
+
+  cv.addEventListener('pointerdown', (e) => {
+    const w = toWorld(e.clientX, e.clientY);
+    tapAt(w.x, w.y);
+    // 顺手撩一把叶子
+    if (Math.random() < 0.5) spawnLeaf(w.x, Math.min(w.y, 120), 4);
+  });
+
+  function buy(kind, cost) {
+    if (state.coins < cost) { say('金币不够'); return; }
+    state.coins -= cost;
+    state.seeds[kind] += 1;
+    save();
+    say(`买了 1 包${crops[kind].name}种子`);
+  }
+  document.getElementById('buy-wheat').addEventListener('click', () => buy('wheat', 5));
+  document.getElementById('buy-carrot').addEventListener('click', () => buy('carrot', 8));
+
+  // ---------- HUD ----------
+  const hCoin = document.getElementById('h-coin');
+  const hDay = document.getElementById('h-day');
+  const hSeed = document.getElementById('h-seed');
+  const hWind = document.getElementById('h-wind');
+  function hud() {
+    hCoin.textContent = state.coins;
+    hDay.textContent = state.day;
+    hSeed.textContent = state.seeds.wheat + state.seeds.carrot;
+    hWind.textContent = wind.toFixed(1);
+  }
+
+  // ---------- 主循环 ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    state.t += dt;
+
+    updateWind(dt);
+    emitLeaves(dt);
+    updateLeaves(dt);
+
+    // 生长：浇过水的地块随时间推进
+    state.dayT += dt;
+    if (state.dayT > 45) {
+      state.dayT = 0;
+      state.day++;
+      save();
+    }
+    for (const p of state.plots) {
+      if (!p.crop) continue;
+      if (p.wet > 0) {
+        p.wet -= dt;
+        p.grow += dt;
+        const need = crops[p.crop].grow;
+        const st = Math.min(3, Math.floor((p.grow / need) * 3));
+        if (st !== p.stage) { p.stage = st; save(); }
+      }
+    }
+
+    if (tipTimer > 0) { tipTimer -= dt; if (tipTimer <= 0) tipEl.classList.remove('on'); }
+
+    // 绘制
+    ctx.setTransform(scale * dprNow, 0, 0, scale * dprNow, offX * dprNow, offY * dprNow);
+    ctx.imageSmoothingEnabled = false;
+
+    drawSky();
+    drawClouds(dt);
+    drawGround();
+    // 树从后往前
+    for (const tr of [...trees].sort((a, b) => a.y - b.y)) drawTree(tr);
+    drawPlots();
+
+    // 叶子：前面的更亮更大
+    for (const l of leaves) {
+      ctx.save();
+      ctx.translate(Math.round(l.x), Math.round(l.y));
+      ctx.rotate(l.rot);
+      ctx.fillStyle = l.color;
+      ctx.fillRect(0, 0, l.size, l.size + 1);
+      ctx.restore();
+    }
+
+    hud();
+    requestAnimationFrame(frame);
+  }
+
+  load();
+  if (!state.plots || state.plots.length !== PLOT_N) state.plots = defaultPlots();
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
