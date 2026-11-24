@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0c1c22" />
+<title>像素树 · 风</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0c1c22; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; touch-action: none; }
+  .hint {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    color: rgba(220, 240, 235, .55); font: 11px/1 -apple-system, "PingFang SC", monospace;
+    letter-spacing: .24em; pointer-events: none; user-select: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hint">点一下 · 起一阵风</div>
+<script>
+(() => {
+  'use strict';
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  let W = 320, H = 180, scale = 1, dpr = 1, offX = 0, offY = 0;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = window.innerWidth, ch = window.innerHeight;
+    cv.width = Math.round(cw * dpr);
+    cv.height = Math.round(ch * dpr);
+    if (ch > cw) { W = 200; H = 340; } else { W = 340; H = 190; }
+    scale = Math.max(cw / W, ch / H);
+    offX = (cw - W * scale) / 2;
+    offY = (ch - H * scale) / 2;
+    build();
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- 场景 ----------
+  let groundY = 132, fgY = 168;
+  let trees = [], grass = [], leaves = [], streaks = [];
+  const LEAF_COLORS = ['#4f8f4a', '#5da356', '#3f7a3f', '#79b667', '#a8c96a', '#d9c56a', '#c98f4a'];
+
+  function build() {
+    groundY = Math.round(H * 0.72);
+    fgY = Math.round(H * 0.87);
+    const back = W < 260
+      ? [
+          { x: W * 0.12, y: groundY - 4, s: 0.55, layer: 0 },
+          { x: W * 0.88, y: groundY - 2, s: 0.5, layer: 0 },
+          { x: W * 0.16, y: groundY + 4, s: 0.95, layer: 1 },
+          { x: W * 0.82, y: groundY + 6, s: 0.88, layer: 1 },
+        ]
+      : [
+          { x: 26, y: groundY - 6, s: 0.5, layer: 0 },
+          { x: 74, y: groundY - 3, s: 0.46, layer: 0 },
+          { x: 262, y: groundY - 7, s: 0.52, layer: 0 },
+          { x: 306, y: groundY - 2, s: 0.48, layer: 0 },
+          { x: 52, y: groundY + 6, s: 1.05, layer: 1 },
+          { x: 150, y: groundY + 2, s: 1.25, layer: 1 },
+          { x: 250, y: groundY + 8, s: 1.0, layer: 1 },
+        ];
+    trees = back.map((t, i) => ({ ...t, phase: i * 1.37 }));
+    grass = [];
+    for (let i = 0; i < 90; i++) {
+      grass.push({
+        x: Math.random() * W,
+        y: groundY + 6 + Math.random() * (H - groundY - 8),
+        h: 2 + Math.random() * 4,
+        c: Math.random() < 0.5 ? '#2b5a37' : '#376b42',
+        ph: Math.random() * 6.28,
+      });
+    }
+  }
+
+  // ---------- 风 ----------
+  let t = 0;
+  let wind = 0.4, gust = 0;
+  function updateWind(dt) {
+    t += dt;
+    const base = 0.42 + 0.3 * Math.sin(t * 0.23) + 0.16 * Math.sin(t * 0.61 + 1.9);
+    gust = Math.max(0, gust - dt * 0.55);
+    wind = base + gust;
+  }
+
+  // ---------- 叶子 ----------
+  function spawnLeaf(x, y, spread, vx = 0) {
+    const n = Math.random();
+    leaves.push({
+      x: x + (Math.random() - 0.5) * spread,
+      y: y + (Math.random() - 0.5) * spread * 0.5,
+      vx, vy: 0,
+      size: n < 0.35 ? 2 : 1,
+      spin: (Math.random() - 0.5) * 9,
+      rot: Math.random() * 6.28,
+      color: LEAF_COLORS[(Math.random() * LEAF_COLORS.length) | 0],
+      life: 7 + Math.random() * 5,
+      age: 0,
+    });
+    if (leaves.length > 220) leaves.shift();
+  }
+
+  function updateLeaves(dt) {
+    for (let i = leaves.length - 1; i >= 0; i--) {
+      const l = leaves[i];
+      l.age += dt;
+      l.vx += (wind * 30 - l.vx) * dt * 1.6 + Math.sin(l.age * 6 + l.rot) * 16 * dt;
+      l.vy += (10 - l.vy) * dt * 0.55;
+      l.rot += l.spin * dt * (0.5 + wind);
+      l.x += l.vx * dt;
+      l.y += l.vy * dt;
+      if (l.y > fgY + 8 || l.age > l.life || l.x < -12 || l.x > W + 12) leaves.splice(i, 1);
+    }
+  }
+
+  let leafTimer = 0;
+  function emit(dt) {
+    leafTimer -= dt;
+    if (leafTimer > 0) return;
+    leafTimer = 0.04 + Math.random() * 0.1;
+    if (Math.random() > 0.5 + wind * 0.4) return;
+    const tr = trees[(Math.random() * trees.length) | 0];
+    const R = 30 * tr.s;
+    const cx = tr.x + (Math.random() - 0.5) * R * 1.6;
+    const cy = tr.y - 30 * tr.s - R * 0.5 + (Math.random() - 0.5) * R;
+    spawnLeaf(cx, cy, 8, wind * 6);
+    if (gust > 0.2 && Math.random() < 0.55) spawnLeaf(cx, cy, 22, wind * 10);
+  }
+
+  // ---------- 绘制 ----------
+  const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x | 0, y | 0, Math.max(1, w | 0), Math.max(1, h | 0)); };
+
+  function sky() {
+    const g = ctx.createLinearGradient(0, 0, 0, groundY);
+    g.addColorStop(0, '#0d2630');
+    g.addColorStop(0.45, '#1c4a52');
+    g.addColorStop(0.8, '#2f6a63');
+    g.addColorStop(1, '#4d8a72');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, groundY);
+
+    // 远山两层
+    ctx.fillStyle = '#24524f';
+    for (let i = 0; i < 6; i++) {
+      const bx = i * (W / 5) - 30, bh = 26 + ((i * 41) % 20) + (H > 240 ? 18 : 0);
+      ctx.beginPath();
+      ctx.moveTo(bx, groundY);
+      ctx.lineTo(bx + 40, groundY - bh);
+      ctx.lineTo(bx + 88, groundY);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = '#1c4341';
+    for (let i = 0; i < 4; i++) {
+      const bx = i * (W / 3) - 20, bh = 14 + ((i * 29) % 12);
+      ctx.beginPath();
+      ctx.moveTo(bx, groundY);
+      ctx.lineTo(bx + 52, groundY - bh);
+      ctx.lineTo(bx + 112, groundY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 太阳
+    const sx = Math.round(W * 0.74), sy = Math.round(groundY * 0.30);
+    for (let r = 20; r > 0; r--) {
+      ctx.globalAlpha = 0.035;
+      ctx.fillStyle = '#ffe9a8';
+      ctx.beginPath(); ctx.arc(sx, sy, r, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff6d2';
+    ctx.beginPath(); ctx.arc(sx, sy, 6, 0, 7); ctx.fill();
+  }
+
+  function ground() {
+    px(0, groundY, W, H - groundY, '#2b5f3a');
+    for (let i = 0; i < 240; i++) {
+      const x = (i * 61 + (i * i) % 43) % W;
+      const y = groundY + 1 + ((i * 23) % Math.max(8, H - groundY - 4));
+      px(x, y, 1, 2, i % 3 === 0 ? '#356c41' : i % 3 === 1 ? '#25512f' : '#437a49');
+    }
+    px(0, fgY, W, H - fgY, '#214a2c');
+  }
+
+  function tree(tr) {
+    const s = tr.s;
+    const dim = tr.layer === 0;
+    const sway = wind * (dim ? 2 : 3.4);
+    const trunkH = Math.round(26 * s);
+    const trunkW = Math.max(2, Math.round(4 * s));
+    const baseX = tr.x, baseY = tr.y;
+
+    px(baseX - trunkW / 2, baseY - trunkH, trunkW, trunkH, dim ? '#3a3527' : '#4a3520');
+    px(baseX - trunkW / 2, baseY - trunkH, 1, trunkH, dim ? '#4a4433' : '#63482c');
+
+    const R = 26 * s;
+    const cx = baseX + sway * Math.sin(t * 1.05 + tr.phase) * s;
+    const cy = baseY - trunkH - R * 0.5;
+
+    const palette = dim
+      ? ['#28563a', '#2d5f40', '#356a46']
+      : ['#2f6b3a', '#3a7d42', '#48914b'];
+
+    const blobs = [
+      { dx: 0, dy: R * 0.05, r: R * 0.68, c: palette[0] },
+      { dx: -R * 0.52, dy: R * 0.16, r: R * 0.46, c: palette[1] },
+      { dx: R * 0.5, dy: R * 0.12, r: R * 0.48, c: palette[0] },
+      { dx: -R * 0.62, dy: -R * 0.18, r: R * 0.38, c: palette[0] },
+      { dx: R * 0.6, dy: -R * 0.16, r: R * 0.4, c: palette[2] },
+      { dx: -R * 0.24, dy: -R * 0.5, r: R * 0.46, c: palette[1] },
+      { dx: R * 0.18, dy: -R * 0.56, r: R * 0.42, c: palette[2] },
+      { dx: 0, dy: -R * 0.2, r: R * 0.5, c: palette[2] },
+    ];
+
+    for (const b of blobs) {
+      const bx = cx + b.dx + sway * 1.1 * (b.dy / R);
+      const by = cy + b.dy;
+      for (let y = -b.r; y <= b.r; y += 1) {
+        const half = Math.sqrt(Math.max(0, b.r * b.r - y * y));
+        for (let x = -half; x <= half; x += 2) {
+          if (Math.random() < 0.012) continue;
+          px(bx + x, by + y, 2, 1, b.c);
+        }
+      }
+    }
+
+    if (!dim) {
+      for (let i = 0; i < 9; i++) {
+        const a = i * 2.1 + tr.phase;
+        px(cx + Math.cos(a) * R * 0.8, cy + Math.sin(a) * R * 0.45, 1, 1, i % 3 ? '#7cc468' : '#a8d67c');
+      }
+      // 向阳面（右上）挑几笔亮边，别撒成麻点
+      for (let i = 0; i < 12; i++) {
+        const a = -0.7 + i * 0.06;
+        const rr = R * (0.78 + Math.random() * 0.10);
+        px(cx + Math.cos(a) * rr, cy - Math.sin(a) * rr * 0.85, 1, 1, i % 3 ? '#93ca79' : '#a8d68c');
+      }
+      px(cx - R * 0.5, cy + R * 0.6, R, 2, '#245a31');
+    }
+  }
+
+  function drawGrass() {
+    for (const g of grass) {
+      const s = Math.sin(t * 2.2 + g.ph) * (0.6 + wind * 2.4);
+      px(g.x + s, g.y - g.h, 1, g.h, g.c);
+      px(g.x + s * 1.4, g.y - g.h * 0.6, 1, g.h * 0.6, g.c);
+    }
+  }
+
+  function drawStreaks(dt) {
+    if (wind > 0.95 && Math.random() < dt * 6) {
+      streaks.push({ x: -10, y: 30 + Math.random() * (groundY - 50), len: 20 + Math.random() * 40, a: 0.10 + Math.random() * 0.12 });
+    }
+    for (let i = streaks.length - 1; i >= 0; i--) {
+      const s = streaks[i];
+      s.x += (60 + wind * 120) * dt;
+      if (s.x > W + 40) { streaks.splice(i, 1); continue; }
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = '#e8f7f0';
+      ctx.fillRect(s.x, s.y, s.len, 1);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    updateWind(dt);
+    emit(dt);
+    updateLeaves(dt);
+
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, offX * dpr, offY * dpr);
+    ctx.imageSmoothingEnabled = false;
+
+    sky();
+    drawStreaks(dt);
+    ground();
+    // 后排树（暗一点）
+    for (const tr of trees) if (tr.layer === 0) tree(tr);
+    // 中景草
+    drawGrass();
+    // 前排树
+    for (const tr of trees) if (tr.layer === 1) tree(tr);
+    // 叶子
+    for (const l of leaves) {
+      ctx.save();
+      ctx.translate(Math.round(l.x), Math.round(l.y));
+      ctx.rotate(l.rot);
+      ctx.fillStyle = l.color;
+      ctx.fillRect(0, 0, l.size, l.size + 1);
+      ctx.restore();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  let last = performance.now();
+  resize();
+  cv.addEventListener('pointerdown', () => {
+    gust = Math.min(1.4, gust + 0.9);
+    for (let i = 0; i < 24; i++) {
+      const tr = trees[(Math.random() * trees.length) | 0];
+      spawnLeaf(tr.x, tr.y - 40 * tr.s, 40, 12);
+    }
+  });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
